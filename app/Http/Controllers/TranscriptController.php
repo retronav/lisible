@@ -144,14 +144,20 @@ class TranscriptController extends Controller
         }
 
         return response()->json([
-            'id' => $transcript->id,
-            'status' => $transcript->status,
-            'error_message' => $transcript->error_message,
-            'processed_at' => $transcript->processed_at,
-            'has_transcript' => !is_null($transcript->transcript),
-            'can_retry' => $transcript->status === Transcript::STATUS_FAILED,
-            'is_processing' => $transcript->status === Transcript::STATUS_PROCESSING,
-            'transcript_data' => $transcript->transcript,
+            'transcript' => [
+                'id' => $transcript->id,
+                'status' => $transcript->status,
+                'error_message' => $transcript->error_message,
+                'processed_at' => $transcript->processed_at,
+                'has_transcript' => !is_null($transcript->transcript),
+                'can_retry' => $transcript->status === Transcript::STATUS_FAILED,
+                'is_processing' => $transcript->status === Transcript::STATUS_PROCESSING,
+                'transcript' => $transcript->transcript,
+                'title' => $transcript->title,
+                'description' => $transcript->description,
+                'created_at' => $transcript->created_at,
+                'updated_at' => $transcript->updated_at,
+            ]
         ]);
     }
 

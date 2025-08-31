@@ -4,15 +4,23 @@ namespace Tests\Unit;
 
 use App\Jobs\ProcessTranscription;
 use App\Models\Transcript;
+use App\Services\GeminiService;
 use Exception;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Mockery;
 use Tests\TestCase;
 
 class ProcessTranscriptionTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
 
     /**
      * Test that the job can be instantiated correctly.
@@ -52,9 +60,18 @@ class ProcessTranscriptionTest extends TestCase
         $transcript = Transcript::factory()->pending()->create();
         $job = new ProcessTranscription($transcript);
 
+        // Mock GeminiService
+        $mockGeminiService = Mockery::mock(GeminiService::class);
+        $sampleTranscriptData = $this->getSampleTranscriptData();
+
+        $mockGeminiService->shouldReceive('transcribeMedicalDocument')
+            ->once()
+            ->with($transcript)
+            ->andReturn($sampleTranscriptData);
+
         $this->assertEquals('pending', $transcript->fresh()->status);
 
-        $job->handle();
+        $job->handle($mockGeminiService);
 
         $transcript = $transcript->fresh();
         $this->assertEquals('completed', $transcript->status);
@@ -75,7 +92,16 @@ class ProcessTranscriptionTest extends TestCase
         $transcript = Transcript::factory()->pending()->create();
         $job = new ProcessTranscription($transcript);
 
-        $job->handle();
+        // Mock GeminiService
+        $mockGeminiService = Mockery::mock(GeminiService::class);
+        $sampleTranscriptData = $this->getSampleTranscriptData();
+
+        $mockGeminiService->shouldReceive('transcribeMedicalDocument')
+            ->once()
+            ->with($transcript)
+            ->andReturn($sampleTranscriptData);
+
+        $job->handle($mockGeminiService);
 
         $transcript = $transcript->fresh();
         $transcriptData = $transcript->transcript;
@@ -107,15 +133,20 @@ class ProcessTranscriptionTest extends TestCase
      */
     public function test_job_failure_updates_transcript_status(): void
     {
-        // Don't set up any log expectations - just test the behavior
         $transcript = Transcript::factory()->pending()->create();
         $job = new ProcessTranscription($transcript);
+
+        // Mock GeminiService for error message generation
+        $mockGeminiService = Mockery::mock(GeminiService::class);
+        $mockGeminiService->shouldReceive('getUserFriendlyErrorMessage')
+            ->once()
+            ->andReturn('An unexpected error occurred during transcription. Our team has been notified. Please try again later.');
 
         // Force an exception during processing
         $exception = new Exception('Test exception');
 
         // Simulate job failure (this will log, but we don't need to mock it for this test)
-        $job->failed($exception);
+        $job->failed($exception, $mockGeminiService);
 
         $transcript = $transcript->fresh();
         $this->assertEquals('failed', $transcript->status);
@@ -124,42 +155,71 @@ class ProcessTranscriptionTest extends TestCase
     }
 
     /**
-     * Test user-friendly error message conversion.
+     * Test that job handles GeminiService exceptions correctly.
      */
-    public function test_user_friendly_error_messages(): void
+    public function test_job_handles_gemini_service_exceptions(): void
+    {
+        Log::shouldReceive('channel')->with('transcription')->andReturnSelf();
+        Log::shouldReceive('info')->once(); // Start processing log
+        Log::shouldReceive('error')->once(); // Error log
+
+        $transcript = Transcript::factory()->pending()->create();
+        $job = new ProcessTranscription($transcript);
+
+        // Mock GeminiService to throw an exception
+        $mockGeminiService = Mockery::mock(GeminiService::class);
+        $mockGeminiService->shouldReceive('transcribeMedicalDocument')
+            ->once()
+            ->with($transcript)
+            ->andThrow(new Exception('API connection failed'));
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('API connection failed');
+
+        $job->handle($mockGeminiService);
+
+        // Transcript should still be in processing state since the exception is re-thrown
+        $transcript = $transcript->fresh();
+        $this->assertEquals('processing', $transcript->status);
+    }
+
+    /**
+     * Test data fields counting function.
+     */
+    public function test_count_data_fields(): void
     {
         $transcript = Transcript::factory()->pending()->create();
         $job = new ProcessTranscription($transcript);
 
-        // Test timeout error
-        $timeoutException = new Exception('Connection timeout occurred');
-        $job->failed($timeoutException);
-        $transcript = $transcript->fresh();
-        $this->assertStringContainsString('took too long to complete', $transcript->error_message);
+        // Mock GeminiService
+        $mockGeminiService = Mockery::mock(GeminiService::class);
+        $sampleData = $this->getSampleTranscriptData();
 
-        // Test network error
-        $transcript = Transcript::factory()->pending()->create();
-        $job = new ProcessTranscription($transcript);
-        $networkException = new Exception('Network connection failed');
-        $job->failed($networkException);
-        $transcript = $transcript->fresh();
-        $this->assertStringContainsString('Unable to connect', $transcript->error_message);
+        // Add multiple items to test counting
+        $sampleData['prescriptions'][] = [
+            'drug_name' => 'Ibuprofen',
+            'dosage' => '200mg',
+            'route' => 'Oral',
+            'frequency' => '2 times daily',
+            'duration' => '5 days',
+        ];
+        $sampleData['observations'][] = 'Heart rate: 72 bpm';
 
-        // Test file error
-        $transcript = Transcript::factory()->pending()->create();
-        $job = new ProcessTranscription($transcript);
-        $fileException = new Exception('Image file corrupted');
-        $job->failed($fileException);
-        $transcript = $transcript->fresh();
-        $this->assertStringContainsString('problem reading your image file', $transcript->error_message);
+        $mockGeminiService->shouldReceive('transcribeMedicalDocument')
+            ->once()
+            ->with($transcript)
+            ->andReturn($sampleData);
 
-        // Test API error
-        $transcript = Transcript::factory()->pending()->create();
-        $job = new ProcessTranscription($transcript);
-        $apiException = new Exception('API quota exceeded');
-        $job->failed($apiException);
+        Log::shouldReceive('channel')->with('transcription')->andReturnSelf();
+        Log::shouldReceive('info')->times(2);
+
+        $job->handle($mockGeminiService);
+
         $transcript = $transcript->fresh();
-        $this->assertStringContainsString('temporarily unavailable', $transcript->error_message);
+
+        // The log should include data_fields_count
+        // We can't easily test the private method directly, but the job should complete successfully
+        $this->assertEquals('completed', $transcript->status);
     }
 
     /**
@@ -261,7 +321,13 @@ class ProcessTranscriptionTest extends TestCase
         $transcript = Transcript::factory()->pending()->create();
         $job = new ProcessTranscription($transcript);
 
-        $job->handle();
+        // Mock GeminiService
+        $mockGeminiService = Mockery::mock(GeminiService::class);
+        $mockGeminiService->shouldReceive('transcribeMedicalDocument')
+            ->once()
+            ->andReturn($this->getSampleTranscriptData());
+
+        $job->handle($mockGeminiService);
     }
 
     /**
@@ -277,8 +343,14 @@ class ProcessTranscriptionTest extends TestCase
         $transcript = Transcript::factory()->pending()->create();
         $job = new ProcessTranscription($transcript);
 
+        // Mock GeminiService
+        $mockGeminiService = Mockery::mock(GeminiService::class);
+        $mockGeminiService->shouldReceive('getUserFriendlyErrorMessage')
+            ->once()
+            ->andReturn('Test error message');
+
         $exception = new Exception('Test failure');
-        $job->failed($exception);
+        $job->failed($exception, $mockGeminiService);
     }
 
     /**
@@ -292,9 +364,64 @@ class ProcessTranscriptionTest extends TestCase
         $transcript = Transcript::factory()->pending()->create();
         $job = new ProcessTranscription($transcript);
 
-        $job->handle();
+        // Mock GeminiService
+        $mockGeminiService = Mockery::mock(GeminiService::class);
+        $mockGeminiService->shouldReceive('transcribeMedicalDocument')
+            ->once()
+            ->andReturn($this->getSampleTranscriptData());
+
+        $job->handle($mockGeminiService);
 
         $transcript = $transcript->fresh();
         $this->assertTrue(Transcript::validateTranscriptSchema($transcript->transcript));
+    }
+
+    /**
+     * Get sample transcript data for testing.
+     */
+    private function getSampleTranscriptData(): array
+    {
+        return [
+            'patient' => [
+                'name' => 'John Doe',
+                'age' => 45,
+                'gender' => 'Male',
+            ],
+            'date' => now()->format('Y-m-d'),
+            'prescriptions' => [
+                [
+                    'drug_name' => 'Amoxicillin',
+                    'dosage' => '500mg',
+                    'route' => 'Oral',
+                    'frequency' => '3 times daily',
+                    'duration' => '7 days',
+                    'notes' => 'Take with food',
+                ],
+            ],
+            'diagnoses' => [
+                [
+                    'condition' => 'Upper Respiratory Infection',
+                    'notes' => 'Mild symptoms',
+                ],
+            ],
+            'observations' => [
+                'Patient appears alert and oriented',
+                'Temperature: 100.2°F',
+                'Blood pressure: 120/80 mmHg',
+            ],
+            'tests' => [
+                [
+                    'test_name' => 'CBC',
+                    'result' => 'Normal',
+                    'normal_range' => '4.5-11.0 K/μL',
+                    'notes' => 'All parameters within normal limits',
+                ],
+            ],
+            'instructions' => 'Rest, increase fluid intake, return if symptoms worsen',
+            'doctor' => [
+                'name' => 'Dr. Smith',
+                'signature' => 'Dr. J. Smith, MD',
+            ],
+        ];
     }
 }

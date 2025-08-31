@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Transcript;
+use App\Services\GeminiService;
 use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -58,7 +59,7 @@ class ProcessTranscription implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(GeminiService $geminiService): void
     {
         try {
             Log::channel('transcription')->info('Starting transcription processing', [
@@ -71,12 +72,12 @@ class ProcessTranscription implements ShouldQueue
                 'status' => 'processing',
             ]);
 
-            // Simulate transcription processing for now
-            // This will be replaced with actual Gemini API integration in Sprint 8
-            $this->simulateTranscriptionProcessing();
+            // Use GeminiService to transcribe the document
+            $transcriptData = $geminiService->transcribeMedicalDocument($this->transcript);
 
             // Update transcript with results
             $this->transcript->update([
+                'transcript' => $transcriptData, // Let the model cast this to JSON
                 'status' => 'completed',
                 'processed_at' => now(),
                 'error_message' => null,
@@ -85,6 +86,7 @@ class ProcessTranscription implements ShouldQueue
             Log::channel('transcription')->info('Transcription processing completed successfully', [
                 'transcript_id' => $this->transcript->id,
                 'processing_time' => now()->diffInSeconds($this->transcript->updated_at),
+                'data_fields_count' => $this->countDataFields($transcriptData),
             ]);
 
         } catch (Exception $exception) {
@@ -101,7 +103,7 @@ class ProcessTranscription implements ShouldQueue
     /**
      * Handle a job failure.
      */
-    public function failed(Exception $exception): void
+    public function failed(Exception $exception, GeminiService $geminiService): void
     {
         Log::channel('transcription')->error('Transcription job failed permanently', [
             'transcript_id' => $this->transcript->id,
@@ -109,98 +111,30 @@ class ProcessTranscription implements ShouldQueue
             'attempts' => $this->attempts(),
         ]);
 
-        // Update transcript status to failed with user-friendly error message
-        $errorMessage = $this->getUserFriendlyErrorMessage($exception);
+        // Get user-friendly error message from GeminiService
+        $errorMessage = $geminiService->getUserFriendlyErrorMessage($exception);
 
+        // Update transcript status to failed with user-friendly error message
         $this->transcript->update([
             'status' => 'failed',
             'error_message' => $errorMessage,
         ]);
-    }    /**
-     * Simulate the transcription processing.
-     * TODO: This will be replaced with actual Gemini API integration.
-     */
-    private function simulateTranscriptionProcessing(): void
-    {
-        // Simulate processing time
-        sleep(2);
-
-        // Generate sample structured transcript data matching the schema
-        $sampleTranscript = [
-            'patient' => [
-                'name' => 'John Doe',
-                'age' => 45,
-                'gender' => 'Male',
-            ],
-            'date' => now()->format('Y-m-d'),
-            'prescriptions' => [
-                [
-                    'drug_name' => 'Amoxicillin',
-                    'dosage' => '500mg',
-                    'route' => 'Oral',
-                    'frequency' => '3 times daily',
-                    'duration' => '7 days',
-                    'notes' => 'Take with food',
-                ],
-            ],
-            'diagnoses' => [
-                [
-                    'condition' => 'Upper Respiratory Infection',
-                    'notes' => 'Mild symptoms',
-                ],
-            ],
-            'observations' => [
-                'Patient appears alert and oriented',
-                'Temperature: 100.2°F',
-                'Blood pressure: 120/80 mmHg',
-            ],
-            'tests' => [
-                [
-                    'test_name' => 'CBC',
-                    'result' => 'Normal',
-                    'normal_range' => '4.5-11.0 K/μL',
-                    'notes' => 'All parameters within normal limits',
-                ],
-            ],
-            'instructions' => 'Rest, increase fluid intake, return if symptoms worsen',
-            'doctor' => [
-                'name' => 'Dr. Smith',
-                'signature' => 'Dr. J. Smith, MD',
-            ],
-        ];
-
-        // Update the transcript with the sample data
-        $this->transcript->update([
-            'transcript' => $sampleTranscript, // Let the model cast this to JSON
-        ]);
     }
 
     /**
-     * Convert technical exceptions to user-friendly error messages.
+     * Count the number of data fields in the transcript data for metrics.
      */
-    private function getUserFriendlyErrorMessage(Exception $exception): string
+    private function countDataFields(array $transcriptData): int
     {
-        $message = $exception->getMessage();
-
-        // Map technical errors to user-friendly messages
-        if (str_contains($message, 'timeout')) {
-            return 'The transcription took too long to complete. Please try again.';
-        }
-
-        if (str_contains($message, 'network') || str_contains($message, 'connection')) {
-            return 'Unable to connect to the transcription service. Please check your internet connection and try again.';
-        }
-
-        if (str_contains($message, 'file') || str_contains($message, 'image')) {
-            return 'There was a problem reading your image file. Please ensure the file is not corrupted and try uploading again.';
-        }
-
-        if (str_contains($message, 'api') || str_contains($message, 'quota')) {
-            return 'The transcription service is temporarily unavailable. Please try again later.';
-        }
-
-        // Generic fallback message
-        return 'An unexpected error occurred during transcription. Our team has been notified. Please try again later.';
+        $count = 0;
+        $count += count($transcriptData['prescriptions'] ?? []);
+        $count += count($transcriptData['diagnoses'] ?? []);
+        $count += count($transcriptData['observations'] ?? []);
+        $count += count($transcriptData['tests'] ?? []);
+        $count += isset($transcriptData['patient']) ? 1 : 0;
+        $count += isset($transcriptData['doctor']) ? 1 : 0;
+        $count += isset($transcriptData['instructions']) ? 1 : 0;
+        return $count;
     }
 
     /**

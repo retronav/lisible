@@ -9,7 +9,7 @@
     import { FileUpload } from '@/components/ui/file-upload';
     import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
     import { type BreadcrumbItem, type Transcript, type ValidationErrors } from '@/types';
-    import { useForm } from '@inertiajs/svelte';
+    import { useForm, router } from '@inertiajs/svelte';
     import { FileText, Save, X } from 'lucide-svelte';
 
     interface Props {
@@ -64,20 +64,60 @@
     const submit = (e: Event) => {
         e.preventDefault();
 
-        // Create FormData if there's a file, otherwise use regular form data
+        console.log('Form submission started');
+        console.log('Has image:', !!$form.image);
+        console.log('Form data:', {
+            title: $form.title,
+            description: $form.description,
+            hasImage: !!$form.image
+        });
+
+        // For file uploads, we need to handle this differently
         if ($form.image) {
-            $form.post(route('transcripts.update', transcript.id), {
-                forceFormData: true,
-                method: 'put',
-                onSuccess: () => {
+            // Use the router directly for file uploads with proper method spoofing
+            const formData = new FormData();
+            formData.append('_method', 'PUT');
+            formData.append('title', $form.title);
+            formData.append('description', $form.description || '');
+            formData.append('image', $form.image);
+
+            // Use router.post directly with FormData
+            router.post(route('transcripts.update', transcript.id), formData, {
+                onStart: () => {
+                    console.log('Form submission started with file');
+                    $form.processing = true;
+                },
+                onSuccess: (page: any) => {
+                    console.log('Form submission successful:', page);
+                    $form.processing = false;
                     // Will redirect to transcript show page automatically
                 },
+                onError: (errors: any) => {
+                    console.error('Form submission failed:', errors);
+                    $form.processing = false;
+                    // Handle errors
+                    Object.assign($form.errors, errors);
+                },
+                onFinish: () => {
+                    console.log('Form submission finished');
+                    $form.processing = false;
+                }
             });
         } else {
             $form.put(route('transcripts.update', transcript.id), {
-                onSuccess: () => {
+                onStart: () => {
+                    console.log('Form submission started without file');
+                },
+                onSuccess: (page: any) => {
+                    console.log('Form submission successful:', page);
                     // Will redirect to transcript show page automatically
                 },
+                onError: (errors: any) => {
+                    console.error('Form submission failed:', errors);
+                },
+                onFinish: () => {
+                    console.log('Form submission finished');
+                }
             });
         }
     };

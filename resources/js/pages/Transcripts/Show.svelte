@@ -30,7 +30,15 @@
         transcript: Transcript;
     }
 
-    let { transcript }: Props = $props();
+    let { transcript: initialTranscript }: Props = $props();
+
+    // Use local state for real-time updates
+    let transcript = $state({ ...initialTranscript });
+
+    // Update local state when prop changes
+    $effect(() => {
+        transcript = { ...initialTranscript };
+    });
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -103,8 +111,8 @@
             if (response.ok) {
                 const data = await response.json();
 
-                // Update transcript with new data
-                Object.assign(transcript, data.transcript);
+                // Update transcript with new data - create new object to trigger reactivity
+                transcript = { ...transcript, ...data.transcript };
 
                 // Stop polling if completed or failed
                 if (transcript.status === 'completed' || transcript.status === 'failed') {
@@ -120,9 +128,7 @@
         } catch (error) {
             console.error('Error polling status:', error);
         }
-    };
-
-    const retryTranscription = () => {
+    };    const retryTranscription = () => {
         router.post(
             `/transcripts/${transcript.id}/retry`,
             {},
@@ -501,7 +507,7 @@
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div class="text-sm p-3 bg-blue-50 border border-blue-200 rounded">
+                            <div class="text-sm p-3 border border-blue-200 rounded">
                                 {data.instructions}
                             </div>
                         </CardContent>
