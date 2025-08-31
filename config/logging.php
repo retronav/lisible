@@ -127,6 +127,20 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'queue' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/queue.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'transcription' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/transcription.log'),
+            'level' => env('LOG_LEVEL', 'info'),
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

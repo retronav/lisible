@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\ProcessTranscription;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -299,5 +300,31 @@ class Transcript extends Model
         }
 
         return $this->transcript;
+    }
+
+    /**
+     * Dispatch the transcription job for this transcript.
+     *
+     * @return void
+     */
+    public function dispatchTranscriptionJob(): void
+    {
+        // Only dispatch job if status is pending
+        if ($this->isPending()) {
+            ProcessTranscription::dispatch($this);
+        }
+    }
+
+    /**
+     * Retry a failed transcription by resetting to pending and dispatching job.
+     *
+     * @return void
+     */
+    public function retryTranscription(): void
+    {
+        if ($this->isFailed()) {
+            $this->resetToPending();
+            $this->dispatchTranscriptionJob();
+        }
     }
 }

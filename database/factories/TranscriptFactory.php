@@ -41,6 +41,16 @@ class TranscriptFactory extends Factory
     }
 
     /**
+     * Indicate that the transcript is pending (default state).
+     */
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => Transcript::STATUS_PENDING,
+        ]);
+    }
+
+    /**
      * Indicate that the transcript is completed.
      */
     public function completed(): static

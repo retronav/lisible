@@ -43,6 +43,15 @@ return [
             'after_commit' => false,
         ],
 
+        'transcription' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'transcription',
+            'retry_after' => 300, // 5 minutes to match job timeout
+            'after_commit' => false,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),
