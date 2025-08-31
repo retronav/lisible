@@ -2,7 +2,7 @@
 
 This document tracks the progress of implementing the **Lisible** medical transcription web application according to the sprint plan outlined in `TECHNICAL.md`.
 
-## Overall Progress: 3/10 Sprints Complete
+## Overall Progress: 4/10 Sprints Complete
 
 ### Sprint 1: Foundation & Database Layer (COMPLETED)
 **Status:** Complete
@@ -132,9 +132,32 @@ This document tracks the progress of implementing the **Lisible** medical transc
 
 ---
 
-### Sprint 4: Frontend Components & Views (PENDING)
-**Status:** Not Started
+### Sprint 4: User Authentication & Base Layout (COMPLETED)
+**Status:** Complete
+**Completed:** Current Session
 **Objective:** Establish user system and application shell
+
+#### Tasks Completed:
+- [x] Verify and configure Laravel starter kit authentication system to match design rationale
+- [x] Ensure authentication views (login, register, email verification, password reset, confirm password) render via Inertia + Svelte
+- [x] Create base application layout with sidebar navigation, header, and footer components
+- [x] Implement user dashboard shell with placeholder sections for future widgets
+- [x] Add user settings pages for profile and password management (name, email, password updates, account deletion)
+- [x] Protect authenticated routes with proper middleware (auth, verified)
+
+#### Deliverables:
+- **Auth Routes & Controllers** (`routes/auth.php`, `app/Http/Controllers/Auth/*`): Login, registration, password reset, email verification, session management
+- **Settings Routes & Controllers** (`routes/settings.php`, `app/Http/Controllers/Settings/*`): Profile and password pages with update/delete actions
+- **Dashboard Page** (`resources/js/pages/Dashboard.svelte`): Shell layout with placeholder content and breadcrumbs
+- **Base App Layout** (`resources/js/layouts/AppLayout.svelte`, `resources/js/layouts/app/AppSidebarLayout.svelte`): App shell wiring
+- **Navigation Components** (`resources/js/components/AppShell.svelte`, `AppSidebar.svelte`, `AppSidebarHeader.svelte`, `NavMain.svelte`, `NavUser.svelte`, `NavFooter.svelte`)
+- **Auth Pages** (`resources/js/pages/auth/*.svelte`): Login/Register/Verify Email/Forgot/Reset/Confirm
+- **Settings Pages** (`resources/js/pages/settings/*.svelte`): Profile, Password, Appearance
+
+#### Notes:
+- All feature tests for authentication, dashboard access, and settings are passing (see test report below).
+- Routes `dashboard`, `transcripts/*`, and `settings/*` are protected by `auth` and `verified` as appropriate.
+- Inertia is configured with SSR hydration, and base Blade view `resources/views/app.blade.php` loads the app and fonts.
 
 ---
 
@@ -186,10 +209,10 @@ This document tracks the progress of implementing the **Lisible** medical transc
 - [x] **Request Validation**: Form request classes for secure data validation
 
 ### Frontend (Svelte 5 + Inertia.js)
-- [ ] **Components**: Not implemented
-- [ ] **Pages**: Not implemented
-- [ ] **Layouts**: Not implemented
-- [ ] **State Management**: Not implemented
+- [x] **Components**: Base navigation (sidebar, header, user menu), inputs, buttons, and utility components implemented
+- [x] **Pages**: Auth pages, Dashboard, Settings (Profile, Password, Appearance) implemented
+- [x] **Layouts**: App shell (sidebar layout) and auth layout implemented with breadcrumbs and SSR hydration
+- [ ] **State Management**: Basic local state patterns used; app-wide stores not required yet
 
 ### External Integrations
 - [ ] **Gemini API**: Not implemented
@@ -198,14 +221,23 @@ This document tracks the progress of implementing the **Lisible** medical transc
 
 ## Next Steps
 
-1. **Immediate Priority**: Begin Sprint 4 - Frontend Components & Views
+1. **Immediate Priority**: Begin Sprint 5 - Transcript Creation Interface
 2. **Focus Areas**:
-   - Create Svelte 5 components for the user interface
-   - Update the UI to reflect the desired design rationale
-   - Implement Inertia.js pages for seamless Laravel-Svelte integration
-   - Build responsive layouts and navigation components
-   - Establish frontend state management patterns
-   - Create reusable UI components for forms, tables, and modals
+   - Build transcript creation form with image upload (drag-and-drop + preview)
+   - Client-side validation for file types/sizes and required fields
+   - Submit to backend and show progress indicators/status feedback
+   - Add AJAX polling to `/transcripts/{id}/status` for real-time updates
+   - Error handling and user-friendly messages for failed jobs
+   - Integration tests for the full creation workflow
+
+### Sprint 4 Test Summary
+
+All authentication, dashboard access, and settings feature tests pass, along with unit tests for models and jobs.
+
+```
+Tests: 62 passed (188 assertions)
+Duration: ~9.5s
+```
 
 ## Notes
 
