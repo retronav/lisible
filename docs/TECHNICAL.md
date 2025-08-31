@@ -544,6 +544,11 @@ documents into clear, structured digital text.
 - Quick visual status recognition through consistent color coding
 - Efficient information density without overwhelming complexity
 
+# Miscallenous Notes
+
+- Run `npm run build` to generate Vite's manifest.json which is required to run
+  feature tests.
+
 # Implementation Sprints
 
 ## Sprint 1: Foundation & Database Layer

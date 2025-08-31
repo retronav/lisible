@@ -48,6 +48,14 @@ class ProcessTranscription implements ShouldQueue
     }
 
     /**
+     * Get the transcript instance for testing purposes.
+     */
+    public function getTranscript(): Transcript
+    {
+        return $this->transcript;
+    }
+
+    /**
      * Execute the job.
      */
     public function handle(): void

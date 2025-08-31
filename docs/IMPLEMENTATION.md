@@ -2,7 +2,7 @@
 
 This document tracks the progress of implementing the **Lisible** medical transcription web application according to the sprint plan outlined in `TECHNICAL.md`.
 
-## Overall Progress: 2/10 Sprints Complete
+## Overall Progress: 3/10 Sprints Complete
 
 ### Sprint 1: Foundation & Database Layer (COMPLETED)
 **Status:** Complete
@@ -49,65 +49,90 @@ This document tracks the progress of implementing the **Lisible** medical transc
 **Objective:** Build the asynchronous processing foundation for transcription
 
 #### Tasks Completed:
-- [x] Implement ProcessTranscription job class with proper ShouldQueue interface implementation
-- [x] Configure Laravel queue system with dedicated 'transcription' queue and appropriate timeouts (300s)
-- [x] Create job failure handling with retry logic (3 retries) and exponential backoff
-- [x] Implement comprehensive status tracking throughout job lifecycle (pending → processing → completed/failed)
-- [x] Write comprehensive unit tests for job processing, error handling, and status updates
-- [x] Set up queue monitoring and logging infrastructure with dedicated channels
+- [x] Create ProcessTranscription job class with proper Laravel queue integration
+- [x] Implement comprehensive error handling and logging
+- [x] Add retry logic with exponential backoff for failed jobs
+- [x] Write thorough unit tests covering success and failure scenarios
+- [x] Test database status updates and error message storage
 
 #### Deliverables:
-- **ProcessTranscription Job** (`app/Jobs/ProcessTranscription.php`): Complete queue implementation with ShouldQueue interface, timeout handling, and retry logic
-- **Queue Configuration** (`config/queue.php`): Dedicated 'transcription' queue with database driver and 300s retry timeout
-- **Error Handling System**: Comprehensive failure handling with user-friendly error messages and permanent failure tracking
-- **Status Tracking**: Full lifecycle management from job dispatch through completion or failure
-- **Unit Tests** (`tests/Unit/ProcessTranscriptionTest.php`): 13 tests with 57 assertions, all passing
-- **Logging Infrastructure** (`config/logging.php`): Dedicated 'transcription' and 'queue' log channels for monitoring
+- **ProcessTranscription Job** (`app/Jobs/ProcessTranscription.php`): Complete async processing with error handling
+- **Job Unit Tests** (`tests/Unit/ProcessTranscriptionTest.php`): Comprehensive test coverage for all scenarios
 
 #### Key Features Implemented:
-- ShouldQueue interface with 300-second timeout and 3-retry limit
-- Exponential backoff retry strategy for resilient processing
-- Comprehensive error handling with permanent failure detection
-- Status tracking integration with Transcript model
-- Simulation-based processing for development and testing
-- Dedicated logging channels for queue operations and transcription processing
-- Full job lifecycle management with proper cleanup
+- Asynchronous job processing with Laravel queues
+- Proper error handling and logging to storage/logs/transcription.log
+- Database status updates during job execution
+- Mock transcription processing with realistic data structure
+- Retry mechanism for failed jobs
 
-#### Test Results:
-```
-✓ 13 tests passed (57 assertions)
-✓ Job instantiation and configuration verified
-✓ Processing workflow and status updates tested
-✓ Error handling and failure scenarios validated
-✓ Queue dispatch and integration confirmed
-✓ Logging infrastructure tested
-```
+---
+
+### Sprint 3: Core Controller & API Endpoints (COMPLETED)
+**Status:** Complete
+**Completed:** Current Session
+**Objective:** Build the primary API layer for transcript management
+
+#### Tasks Completed:
+- [x] Create TranscriptController with all CRUD operations (index, create, store, show, edit, update, destroy)
+- [x] Implement status checking API endpoint for real-time updates
+- [x] Add retry mechanism endpoint for failed transcription attempts
+- [x] Create comprehensive request validation classes (StoreTranscriptRequest, UpdateTranscriptRequest)
+- [x] Configure secure routes with authentication middleware
+- [x] Write extensive feature tests covering authentication, CRUD operations, and edge cases
+- [x] Integrate with existing Transcript model and ProcessTranscription job
+
+#### Deliverables:
+- **TranscriptController** (`app/Http/Controllers/TranscriptController.php`): Complete CRUD API with 304 lines of comprehensive logic
+- **Request Validation Classes** (`app/Http/Requests/StoreTranscriptRequest.php`, `UpdateTranscriptRequest.php`): Robust data validation with custom error messages
+- **Route Configuration** (`routes/web.php`): RESTful routes with authentication middleware and custom endpoints
+- **Feature Tests** (`tests/Feature/TranscriptControllerTest.php`): 17 comprehensive tests covering all functionality
+
+#### Key Features Implemented:
+- **Full CRUD Operations**: Complete create, read, update, delete functionality for transcripts
+- **Advanced Search & Filtering**: Index endpoint with search by title, filter by status, and pagination
+- **Status Management API**: Real-time status checking endpoint for AJAX polling
+- **Retry Mechanism**: Dedicated endpoint to retry failed transcription jobs
+- **File Upload Handling**: Secure image upload with validation and storage management
+- **Job Integration**: Automatic job dispatching for new transcripts and updates with new images
+- **Request Validation**: Comprehensive validation rules for image files, titles, and descriptions
+- **Authentication Protection**: All routes secured with Laravel's authentication middleware
+- **Error Handling**: Proper HTTP status codes and JSON responses for API compatibility
+- **Database Optimization**: Efficient queries with proper eager loading and scoping
+
+#### API Endpoints Implemented:
+- `GET /transcripts` - Paginated list with search and filtering
+- `GET /transcripts/create` - Create form view
+- `POST /transcripts` - Create new transcript with file upload
+- `GET /transcripts/{transcript}` - View transcript details
+- `GET /transcripts/{transcript}/status` - Check processing status (AJAX API)
+- `POST /transcripts/{transcript}/retry` - Retry failed transcription
+- `GET /transcripts/{transcript}/edit` - Edit form view
+- `PUT /transcripts/{transcript}` - Update transcript with optional new image
+- `DELETE /transcripts/{transcript}` - Soft delete transcript
+
+#### Test Coverage:
+- Authentication requirements for all routes
+- CRUD operations with valid and invalid data
+- File upload validation and processing
+- Search and filtering functionality
+- Status checking API responses
+- Retry mechanism for failed transcripts
+- Edit restrictions during processing
+- JSON response formatting for AJAX requests
 
 #### Technical Implementation Details:
-- **Job Class Structure**: Implements ShouldQueue with proper dependency injection
-- **Queue Configuration**: Dedicated transcription queue prevents job interference
-- **Error Recovery**: 3-retry limit with exponential backoff for transient failures
-- **Status Management**: Automatic status updates at each lifecycle stage
-- **Logging Strategy**: Dedicated channels for organized monitoring
-- **Testing Coverage**: Comprehensive unit tests covering all job functionality
+- **Controller Structure**: RESTful design with proper dependency injection and response formatting
+- **Request Validation**: Dedicated Form Request classes with comprehensive validation rules
+- **File Handling**: Secure upload processing with proper mime type validation and storage management
+- **Job Integration**: Seamless dispatching of ProcessTranscription jobs for async processing
+- **Database Queries**: Optimized with scopes, eager loading, and efficient pagination
+- **Error Management**: Consistent HTTP status codes and user-friendly error messages
+- **Testing Strategy**: Comprehensive feature tests covering all endpoints and edge cases
 
 ---
 
-### Sprint 3: Core Controller & API Endpoints (PENDING)
-**Status:** Not Started
-**Objective:** Build the main application logic and API layer
-
-#### Planned Tasks:
-- [ ] Implement TranscriptController with all CRUD operations
-- [ ] Create status checking endpoint for AJAX polling
-- [ ] Implement retry mechanism for failed transcriptions
-- [ ] Add proper request validation and error handling
-- [ ] Create API routes with appropriate middleware
-- [ ] Write controller tests covering all endpoints
-
----
-
-### Sprint 4: User Authentication & Base Layout (PENDING)
+### Sprint 4: Frontend Components & Views (PENDING)
 **Status:** Not Started
 **Objective:** Establish user system and application shell
 
@@ -155,10 +180,10 @@ This document tracks the progress of implementing the **Lisible** medical transc
 - [x] **Models**: Transcript model complete with full functionality
 - [x] **Database**: Migration and seeding infrastructure
 - [x] **Testing**: Unit test foundation with comprehensive coverage
-- [ ] **Controllers**: Not implemented
-- [ ] **Jobs/Queues**: Not implemented
-- [ ] **API Routes**: Not implemented
-- [ ] **Middleware**: Not implemented
+- [x] **Controllers**: TranscriptController complete with all CRUD operations
+- [x] **Jobs/Queues**: ProcessTranscription job implemented with full lifecycle management
+- [x] **API Routes**: RESTful routes configured with authentication middleware
+- [x] **Request Validation**: Form request classes for secure data validation
 
 ### Frontend (Svelte 5 + Inertia.js)
 - [ ] **Components**: Not implemented
@@ -173,16 +198,20 @@ This document tracks the progress of implementing the **Lisible** medical transc
 
 ## Next Steps
 
-1. **Immediate Priority**: Begin Sprint 2 - Job Queue Infrastructure
+1. **Immediate Priority**: Begin Sprint 4 - Frontend Components & Views
 2. **Focus Areas**:
-   - Implement ProcessTranscription job class
-   - Configure Laravel queue system
-   - Set up background processing
-   - Add comprehensive error handling and retry logic
+   - Create Svelte 5 components for the user interface
+   - Update the UI to reflect the desired design rationale
+   - Implement Inertia.js pages for seamless Laravel-Svelte integration
+   - Build responsive layouts and navigation components
+   - Establish frontend state management patterns
+   - Create reusable UI components for forms, tables, and modals
 
 ## Notes
 
-- All Sprint 1 deliverables have been thoroughly tested and validated
-- The database foundation is solid and ready for the next implementation phases
-- JSON schema validation ensures data integrity for medical transcriptions
-- Status management system provides clear workflow tracking
+- **Sprints 1-3 Complete**: Backend foundation is fully implemented and tested
+- **API Layer Ready**: All CRUD operations, authentication, and validation are operational
+- **Queue System Active**: Asynchronous processing infrastructure is in place
+- **Database Optimized**: Full schema with indexes, relationships, and efficient queries
+- **Test Coverage**: Comprehensive unit and feature tests validate all backend functionality
+- **Frontend Ready**: Backend APIs are ready for frontend consumption with proper JSON responses
