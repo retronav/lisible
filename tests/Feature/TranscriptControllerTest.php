@@ -30,7 +30,7 @@ class TranscriptControllerTest extends TestCase
 
     public function unauthenticated_users_cannot_access_transcript_routes(): void
     {
-        $transcript = Transcript::factory()->create();
+        $transcript = Transcript::factory()->for($this->user)->create();
 
         // Test various routes
         $this->get(route('transcripts.index'))
@@ -50,8 +50,9 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        // Create some test transcripts
+        // Create some test transcripts for this user
         $transcripts = Transcript::factory()
+            ->for($this->user)
             ->count(5)
             ->create();
 
@@ -70,9 +71,9 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        Transcript::factory()->create(['title' => 'Medical Record 1']);
-        Transcript::factory()->create(['title' => 'Patient Chart']);
-        Transcript::factory()->create(['title' => 'Medical Record 2']);
+        Transcript::factory()->for($this->user)->create(['title' => 'Medical Record 1']);
+        Transcript::factory()->for($this->user)->create(['title' => 'Patient Chart']);
+        Transcript::factory()->for($this->user)->create(['title' => 'Medical Record 2']);
 
         $response = $this->get(route('transcripts.index', ['search' => 'Medical Record']));
 
@@ -88,9 +89,9 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        Transcript::factory()->completed()->count(2)->create();
-        Transcript::factory()->failed()->count(3)->create();
-        Transcript::factory()->pending()->create();
+        Transcript::factory()->for($this->user)->completed()->count(2)->create();
+        Transcript::factory()->for($this->user)->failed()->count(3)->create();
+        Transcript::factory()->for($this->user)->pending()->create();
 
         $response = $this->get(route('transcripts.index', ['status' => 'failed']));
 
@@ -128,6 +129,7 @@ class TranscriptControllerTest extends TestCase
         $response->assertRedirect();
 
         $this->assertDatabaseHas('transcripts', [
+            'user_id' => $this->user->id,
             'title' => 'Test Prescription',
             'description' => 'A test prescription for validation',
             'status' => Transcript::STATUS_PENDING,
@@ -182,7 +184,7 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $transcript = Transcript::factory()->completed()->create([
+        $transcript = Transcript::factory()->for($this->user)->completed()->create([
             'title' => 'Test Medical Record',
             'description' => 'Test description',
         ]);
@@ -203,7 +205,7 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $transcript = Transcript::factory()->processing()->create();
+        $transcript = Transcript::factory()->for($this->user)->processing()->create();
 
         $response = $this->get(route('transcripts.status', $transcript));
 
@@ -221,7 +223,7 @@ class TranscriptControllerTest extends TestCase
         $this->actingAs($this->user);
         Queue::fake();
 
-        $transcript = Transcript::factory()->failed()->create();
+        $transcript = Transcript::factory()->for($this->user)->failed()->create();
 
         $response = $this->postJson(route('transcripts.retry', $transcript));
 
@@ -243,7 +245,7 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $transcript = Transcript::factory()->completed()->create();
+        $transcript = Transcript::factory()->for($this->user)->completed()->create();
 
         $response = $this->postJson(route('transcripts.retry', $transcript));
 
@@ -258,7 +260,7 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $transcript = Transcript::factory()->completed()->create();
+        $transcript = Transcript::factory()->for($this->user)->completed()->create();
 
         $response = $this->get(route('transcripts.edit', $transcript));
 
@@ -273,7 +275,7 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $transcript = Transcript::factory()->processing()->create();
+        $transcript = Transcript::factory()->for($this->user)->processing()->create();
 
         $response = $this->get(route('transcripts.edit', $transcript));
 
@@ -285,7 +287,7 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $transcript = Transcript::factory()->completed()->create([
+        $transcript = Transcript::factory()->for($this->user)->completed()->create([
             'title' => 'Old Title',
             'description' => 'Old Description',
         ]);
@@ -308,7 +310,7 @@ class TranscriptControllerTest extends TestCase
         $this->actingAs($this->user);
         Queue::fake();
 
-        $transcript = Transcript::factory()->completed()->create();
+        $transcript = Transcript::factory()->for($this->user)->completed()->create();
         $oldImagePath = $transcript->image;
 
         $newImage = UploadedFile::fake()->image('new-prescription.jpg');
@@ -339,7 +341,7 @@ class TranscriptControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $transcript = Transcript::factory()->completed()->create();
+        $transcript = Transcript::factory()->for($this->user)->completed()->create();
         $imagePath = $transcript->image;
 
         $response = $this->delete(route('transcripts.destroy', $transcript));
@@ -378,5 +380,55 @@ class TranscriptControllerTest extends TestCase
                 ],
                 'message' => 'Transcript created successfully. Processing will begin shortly.',
             ]);
+    }
+
+    public function users_cannot_view_other_users_transcripts(): void
+    {
+        $this->actingAs($this->user);
+
+        // Create another user and their transcript
+        $otherUser = User::factory()->create();
+        $otherTranscript = Transcript::factory()->for($otherUser)->create();
+
+        // Try to access the other user's transcript
+        $response = $this->get(route('transcripts.show', $otherTranscript));
+        $response->assertStatus(403);
+
+        $response = $this->get(route('transcripts.edit', $otherTranscript));
+        $response->assertStatus(403);
+
+        $response = $this->get(route('transcripts.status', $otherTranscript));
+        $response->assertStatus(403);
+
+        $response = $this->post(route('transcripts.retry', $otherTranscript));
+        $response->assertStatus(403);
+
+        $response = $this->put(route('transcripts.update', $otherTranscript), [
+            'title' => 'Hacked Title',
+        ]);
+        $response->assertStatus(403);
+
+        $response = $this->delete(route('transcripts.destroy', $otherTranscript));
+        $response->assertStatus(403);
+    }
+
+    public function user_index_only_shows_their_own_transcripts(): void
+    {
+        $this->actingAs($this->user);
+
+        // Create transcripts for this user
+        Transcript::factory()->for($this->user)->count(3)->create();
+
+        // Create transcripts for another user
+        $otherUser = User::factory()->create();
+        Transcript::factory()->for($otherUser)->count(2)->create();
+
+        $response = $this->get(route('transcripts.index'));
+
+        $response->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Transcripts/Index')
+                ->has('transcripts.data', 3) // Should only see their own 3 transcripts
+            );
     }
 }

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('transcripts', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('title');
             $table->text('description')->nullable();
             $table->longText('image'); // Store base64 encoded image or file path
@@ -27,7 +28,7 @@ return new class extends Migration
 
             // Indexes for performance
             $table->index('created_at');
-            $table->index(['status', 'created_at']); // Compound index for status filtering with date sorting
+            $table->index(['user_id', 'status', 'created_at']); // Compound index for user + status filtering with date sorting
             $table->index('processed_at');
         });
     }

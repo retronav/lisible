@@ -5,7 +5,7 @@
     import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
     import { type NavItem } from '@/types';
     import { Link } from '@inertiajs/svelte';
-    import { BookOpen, Folder, LayoutGrid } from 'lucide-svelte';
+    import { BookOpen, Folder, LayoutGrid, FileText, Plus } from 'lucide-svelte';
     import AppLogo from './AppLogo.svelte';
 
     const mainNavItems: NavItem[] = [
@@ -13,6 +13,16 @@
             title: 'Dashboard',
             href: '/dashboard',
             icon: LayoutGrid,
+        },
+        {
+            title: 'Transcripts',
+            href: '/transcripts',
+            icon: FileText,
+        },
+        {
+            title: 'Create New',
+            href: '/transcripts/create',
+            icon: Plus,
         },
     ];
 

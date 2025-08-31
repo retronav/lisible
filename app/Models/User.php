@@ -45,4 +45,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the transcripts for the user.
+     */
+    public function transcripts()
+    {
+        return $this->hasMany(Transcript::class);
+    }
 }

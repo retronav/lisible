@@ -13,33 +13,42 @@ class TranscriptSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create transcripts in various states for development and testing
+        // Create a default user for seeding
+        $user = \App\Models\User::factory()->create([
+            'name' => 'Demo User',
+            'email' => 'demo@example.com',
+        ]);
 
-        // Create 10 pending transcripts
+        // Create 5 pending transcripts
         Transcript::factory()
-            ->count(10)
+            ->for($user)
+            ->count(5)
             ->create();
 
-        // Create 5 processing transcripts
+        // Create 10 processing transcripts
         Transcript::factory()
+            ->for($user)
             ->processing()
-            ->count(5)
+            ->count(2)
             ->create();
 
         // Create 15 completed transcripts
         Transcript::factory()
+            ->for($user)
             ->completed()
             ->count(15)
             ->create();
 
         // Create 3 failed transcripts
         Transcript::factory()
+            ->for($user)
             ->failed()
             ->count(3)
             ->create();
 
         // Create a specific example transcript for demonstration
         Transcript::create([
+            'user_id' => $user->id,
             'title' => 'Sample Medical Prescription - Dr. Smith',
             'description' => 'Sample prescription for patient John Doe with hypertension diagnosis',
             'image' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',

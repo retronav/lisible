@@ -12,7 +12,7 @@ class TranscriptTest extends TestCase
 
     public function test_can_be_created_with_required_attributes()
     {
-        $transcript = Transcript::create([
+        $transcript = Transcript::factory()->create([
             'title' => 'Test Transcript',
             'description' => 'Test Description',
             'image' => 'data:image/png;base64,test',
@@ -20,6 +20,7 @@ class TranscriptTest extends TestCase
         ]);
 
         $this->assertInstanceOf(Transcript::class, $transcript);
+        $this->assertNotNull($transcript->user_id);
         $this->assertEquals('Test Transcript', $transcript->title);
         $this->assertEquals('Test Description', $transcript->description);
         $this->assertEquals('data:image/png;base64,test', $transcript->image);
@@ -31,13 +32,15 @@ class TranscriptTest extends TestCase
 
     public function test_can_be_created_without_optional_attributes()
     {
-        $transcript = Transcript::create([
+        $transcript = Transcript::factory()->create([
             'title' => 'Test Transcript',
+            'description' => null, // Explicitly set to null
             'image' => 'data:image/png;base64,test',
             'status' => Transcript::STATUS_PENDING,
         ]);
 
         $this->assertInstanceOf(Transcript::class, $transcript);
+        $this->assertNotNull($transcript->user_id);
         $this->assertEquals('Test Transcript', $transcript->title);
         $this->assertNull($transcript->description);
         $this->assertEquals(Transcript::STATUS_PENDING, $transcript->status);
@@ -56,7 +59,7 @@ class TranscriptTest extends TestCase
             'doctor' => ['name' => 'Dr. Smith', 'signature' => 'S.Smith'],
         ];
 
-        $transcript = Transcript::create([
+        $transcript = Transcript::factory()->create([
             'title' => 'Test Transcript',
             'image' => 'data:image/png;base64,test',
             'status' => Transcript::STATUS_COMPLETED,
@@ -399,5 +402,24 @@ class TranscriptTest extends TestCase
 
         $this->assertIsArray($transcript->getFormattedTranscript());
         $this->assertEquals('Test Patient', $transcript->getFormattedTranscript()['patient']['name']);
+    }
+
+    public function test_transcript_belongs_to_user()
+    {
+        $user = \App\Models\User::factory()->create();
+        $transcript = Transcript::factory()->for($user)->create();
+
+        $this->assertEquals($user->id, $transcript->user_id);
+        $this->assertInstanceOf(\App\Models\User::class, $transcript->user);
+        $this->assertEquals($user->name, $transcript->user->name);
+    }
+
+    public function test_user_has_many_transcripts()
+    {
+        $user = \App\Models\User::factory()->create();
+        $transcripts = Transcript::factory()->for($user)->count(3)->create();
+
+        $this->assertCount(3, $user->transcripts);
+        $this->assertInstanceOf(Transcript::class, $user->transcripts->first());
     }
 }

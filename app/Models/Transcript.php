@@ -17,6 +17,7 @@ class Transcript extends Model
      * @var array<string>
      */
     protected $fillable = [
+        'user_id',
         'title',
         'description',
         'image',
@@ -44,6 +45,14 @@ class Transcript extends Model
             'transcript' => 'array',
             'processed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the user that owns the transcript.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**

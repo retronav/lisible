@@ -22,7 +22,7 @@ class TranscriptController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Transcript::query();
+        $query = $request->user()->transcripts();
 
         // Search functionality
         if ($search = $request->get('search')) {
@@ -75,6 +75,7 @@ class TranscriptController extends Controller
 
         // Create the transcript record
         $transcript = Transcript::create([
+            'user_id' => $request->user()->id,
             'title' => $validated['title'],
             'description' => $validated['description'],
             'image' => $imagePath,
@@ -106,8 +107,13 @@ class TranscriptController extends Controller
      *
      * Shows transcript details, original image, and transcribed content.
      */
-    public function show(Transcript $transcript): Response
+    public function show(Request $request, Transcript $transcript): Response
     {
+        // Ensure user can only view their own transcripts
+        if ($transcript->user_id !== $request->user()->id) {
+            abort(403, 'Unauthorized access to transcript.');
+        }
+
         return Inertia::render('Transcripts/Show', [
             'transcript' => [
                 'id' => $transcript->id,
@@ -130,8 +136,13 @@ class TranscriptController extends Controller
      *
      * API endpoint for AJAX polling to show real-time updates.
      */
-    public function status(Transcript $transcript): JsonResponse
+    public function status(Request $request, Transcript $transcript): JsonResponse
     {
+        // Ensure user can only check status of their own transcripts
+        if ($transcript->user_id !== $request->user()->id) {
+            abort(403, 'Unauthorized access to transcript.');
+        }
+
         return response()->json([
             'id' => $transcript->id,
             'status' => $transcript->status,
@@ -149,8 +160,13 @@ class TranscriptController extends Controller
      *
      * Resets failed transcript status and dispatches new job.
      */
-    public function retry(Transcript $transcript): JsonResponse|RedirectResponse
+    public function retry(Request $request, Transcript $transcript): JsonResponse|RedirectResponse
     {
+        // Ensure user can only retry their own transcripts
+        if ($transcript->user_id !== $request->user()->id) {
+            abort(403, 'Unauthorized access to transcript.');
+        }
+
         if ($transcript->status !== Transcript::STATUS_FAILED) {
             if (request()->expectsJson()) {
                 return response()->json([
@@ -189,8 +205,13 @@ class TranscriptController extends Controller
     /**
      * Show the form for editing the specified transcript.
      */
-    public function edit(Transcript $transcript): Response|RedirectResponse
+    public function edit(Request $request, Transcript $transcript): Response|RedirectResponse
     {
+        // Ensure user can only edit their own transcripts
+        if ($transcript->user_id !== $request->user()->id) {
+            abort(403, 'Unauthorized access to transcript.');
+        }
+
         // Don't allow editing while processing
         if ($transcript->status === Transcript::STATUS_PROCESSING) {
             return redirect()->route('transcripts.show', $transcript)
@@ -216,6 +237,11 @@ class TranscriptController extends Controller
      */
     public function update(UpdateTranscriptRequest $request, Transcript $transcript): RedirectResponse
     {
+        // Ensure user can only update their own transcripts
+        if ($transcript->user_id !== $request->user()->id) {
+            abort(403, 'Unauthorized access to transcript.');
+        }
+
         // Don't allow updates while processing
         if ($transcript->status === Transcript::STATUS_PROCESSING) {
             return redirect()->route('transcripts.show', $transcript)
@@ -275,8 +301,13 @@ class TranscriptController extends Controller
      *
      * Soft deletes transcript and cleans up associated files.
      */
-    public function destroy(Transcript $transcript): RedirectResponse
+    public function destroy(Request $request, Transcript $transcript): RedirectResponse
     {
+        // Ensure user can only delete their own transcripts
+        if ($transcript->user_id !== $request->user()->id) {
+            abort(403, 'Unauthorized access to transcript.');
+        }
+
         // Delete associated image file
         if ($transcript->image) {
             Storage::disk('public')->delete($transcript->image);
