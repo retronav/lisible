@@ -25,7 +25,7 @@ class TranscriptListTest extends TestCase
         Storage::fake('public');
     }
 
-    public function unauthenticated_users_cannot_access_transcript_routes(): void
+    public function test_unauthenticated_users_cannot_access_transcript_routes(): void
     {
         $transcript = Transcript::factory()->for($this->user)->create();
 
@@ -43,7 +43,7 @@ class TranscriptListTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
-    public function authenticated_user_can_view_transcripts_index(): void
+    public function test_authenticated_user_can_view_transcripts_index(): void
     {
         $this->actingAs($this->user);
 
@@ -59,12 +59,13 @@ class TranscriptListTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Transcripts/Index')
                 ->has('transcripts.data', 5)
-                ->has('filters')
+                ->has('search')
+                ->has('status')
                 ->has('statuses')
             );
     }
 
-    public function transcript_index_can_search_by_title(): void
+    public function test_transcript_index_can_search_by_title(): void
     {
         $this->actingAs($this->user);
 
@@ -78,11 +79,11 @@ class TranscriptListTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Transcripts/Index')
                 ->has('transcripts.data', 2)
-                ->where('filters.search', 'Medical Record')
+                ->where('search', 'Medical Record')
             );
     }
 
-    public function transcript_index_can_filter_by_status(): void
+    public function test_transcript_index_can_filter_by_status(): void
     {
         $this->actingAs($this->user);
 
@@ -96,11 +97,11 @@ class TranscriptListTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Transcripts/Index')
                 ->has('transcripts.data', 3)
-                ->where('filters.status', 'failed')
+                ->where('status', 'failed')
             );
     }
 
-    public function user_can_view_transcript_details(): void
+    public function test_user_can_view_transcript_details(): void
     {
         $this->actingAs($this->user);
 
@@ -121,7 +122,7 @@ class TranscriptListTest extends TestCase
             );
     }
 
-    public function user_can_check_transcript_status_via_api(): void
+    public function test_user_can_check_transcript_status_via_api(): void
     {
         $this->actingAs($this->user);
 
@@ -130,15 +131,13 @@ class TranscriptListTest extends TestCase
         $response = $this->get(route('transcripts.status', $transcript));
 
         $response->assertOk()
-            ->assertJson([
-                'id' => $transcript->id,
-                'status' => Transcript::STATUS_PROCESSING,
-                'is_processing' => true,
-                'can_retry' => false,
-            ]);
+            ->assertJsonPath('transcript.id', $transcript->id)
+            ->assertJsonPath('transcript.status', Transcript::STATUS_PROCESSING)
+            ->assertJsonPath('transcript.is_processing', true)
+            ->assertJsonPath('transcript.can_retry', false);
     }
 
-    public function users_cannot_view_other_users_transcripts(): void
+    public function test_users_cannot_view_other_users_transcripts(): void
     {
         $this->actingAs($this->user);
 
@@ -168,7 +167,7 @@ class TranscriptListTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function user_index_only_shows_their_own_transcripts(): void
+    public function test_user_index_only_shows_their_own_transcripts(): void
     {
         $this->actingAs($this->user);
 

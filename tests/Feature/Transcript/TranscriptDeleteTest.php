@@ -25,7 +25,7 @@ class TranscriptDeleteTest extends TestCase
         Storage::fake('public');
     }
 
-    public function user_can_delete_transcript(): void
+    public function test_user_can_delete_transcript(): void
     {
         $this->actingAs($this->user);
 

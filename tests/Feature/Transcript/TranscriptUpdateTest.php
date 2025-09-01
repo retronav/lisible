@@ -28,7 +28,7 @@ class TranscriptUpdateTest extends TestCase
         Storage::fake('public');
     }
 
-    public function user_can_view_edit_form_for_transcript(): void
+    public function test_user_can_view_edit_form_for_transcript(): void
     {
         $this->actingAs($this->user);
 
@@ -43,7 +43,7 @@ class TranscriptUpdateTest extends TestCase
             );
     }
 
-    public function editing_is_blocked_while_processing(): void
+    public function test_editing_is_blocked_while_processing(): void
     {
         $this->actingAs($this->user);
 
@@ -55,7 +55,7 @@ class TranscriptUpdateTest extends TestCase
             ->assertSessionHas('error', 'Cannot edit transcript while it is being processed.');
     }
 
-    public function user_can_update_transcript_metadata(): void
+    public function test_user_can_update_transcript_metadata(): void
     {
         $this->actingAs($this->user);
 
@@ -77,7 +77,7 @@ class TranscriptUpdateTest extends TestCase
         $this->assertEquals('New Description', $transcript->description);
     }
 
-    public function updating_with_new_image_triggers_reprocessing(): void
+    public function test_updating_with_new_image_triggers_reprocessing(): void
     {
         $this->actingAs($this->user);
         Queue::fake();
@@ -109,7 +109,7 @@ class TranscriptUpdateTest extends TestCase
         Queue::assertPushed(ProcessTranscription::class);
     }
 
-    public function user_can_retry_failed_transcript(): void
+    public function test_user_can_retry_failed_transcript(): void
     {
         $this->actingAs($this->user);
         Queue::fake();
@@ -132,7 +132,7 @@ class TranscriptUpdateTest extends TestCase
         Queue::assertPushed(ProcessTranscription::class);
     }
 
-    public function retry_is_only_allowed_for_failed_transcripts(): void
+    public function test_retry_is_only_allowed_for_failed_transcripts(): void
     {
         $this->actingAs($this->user);
 

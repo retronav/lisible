@@ -28,7 +28,7 @@ class TranscriptCreateTest extends TestCase
         Storage::fake('public');
     }
 
-    public function authenticated_user_can_view_create_form(): void
+    public function test_authenticated_user_can_view_create_form(): void
     {
         $this->actingAs($this->user);
 
@@ -70,7 +70,7 @@ class TranscriptCreateTest extends TestCase
         });
     }
 
-    public function transcript_creation_requires_valid_data(): void
+    public function test_transcript_creation_requires_valid_data(): void
     {
         $this->actingAs($this->user);
 
@@ -105,7 +105,7 @@ class TranscriptCreateTest extends TestCase
         $response->assertSessionHasErrors(['image']);
     }
 
-    public function ajax_requests_return_json_responses(): void
+    public function test_ajax_requests_return_json_responses(): void
     {
         $this->actingAs($this->user);
         Queue::fake();

@@ -318,6 +318,7 @@ class ProcessTranscriptionTest extends TestCase
             ->once()
             ->with('Transcription processing completed successfully', \Mockery::type('array'));
 
+        $this->addToAssertionCount(3);
         $transcript = Transcript::factory()->pending()->create();
         $job = new ProcessTranscription($transcript);
 
