@@ -328,7 +328,7 @@ PROMPT;
             }
 
             // Add missing data as much as possible
-            if (isEmptyString($jsonData['date'])) {
+            if (strlen($jsonData['date']) === 0) {
                 $jsonData['date'] = date('Y-m-d');
             }
 
