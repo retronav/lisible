@@ -267,16 +267,18 @@
             {#if transcripts.last_page > 1}
                 <div class="mt-8 flex justify-center">
                     <nav class="flex items-center space-x-1">
-                        {#each transcripts.links as link (link.url)}
+                        {#each transcripts.links as link (link.label)}
                             {#if link.url}
                                 <Link href={link.url}>
                                     <Button variant={link.active ? 'default' : 'outline'} size="sm" class="border-2">
-                                        {link.label}
+                                        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                        {@html link.label}
                                     </Button>
                                 </Link>
                             {:else}
                                 <Button variant="outline" size="sm" disabled class="border-2">
-                                    {link.label}
+                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                    {@html link.label}
                                 </Button>
                             {/if}
                         {/each}
