@@ -103,7 +103,7 @@
 </svelte:head>
 
 <AppLayout {breadcrumbs}>
-    <div class="space-y-6">
+    <section class="space-y-6 p-4">
         <!-- Header -->
         <div class="flex items-center justify-between">
             <div>
@@ -292,5 +292,5 @@
                 </CardContent>
             </Card>
         </div>
-    </div>
+    </section>
 </AppLayout>

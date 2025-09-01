@@ -40,7 +40,7 @@
         transcript = { ...initialTranscript };
     });
 
-    const breadcrumbs: BreadcrumbItem[] = [
+    const breadcrumbs: BreadcrumbItem[] = $derived([
         {
             title: 'Transcripts',
             href: '/transcripts',
@@ -49,7 +49,7 @@
             title: transcript.title,
             href: `/transcripts/${transcript.id}`,
         },
-    ];
+    ]);
 
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let showCopySuccess = $state(false);

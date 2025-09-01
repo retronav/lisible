@@ -8,18 +8,15 @@
     import { Link, router } from '@inertiajs/svelte';
     import { FileText, Plus, Search, Filter, Clock, CheckCircle, XCircle, Loader, Calendar, Eye } from 'lucide-svelte';
     import { onMount } from 'svelte';
+    import * as Select from '@/components/ui/select';
 
     interface Props {
         transcripts: PaginatedTranscripts;
         search?: string;
         status?: TranscriptStatus;
-        filters?: {
-            search?: string;
-            status?: string;
-        };
     }
 
-    let { transcripts, search = '', status, filters = {} }: Props = $props();
+    let { transcripts, search = '', status }: Props = $props();
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -29,7 +26,7 @@
     ];
 
     let searchQuery = $state(search);
-    let selectedStatus = $state(status || '');
+    let selectedStatus: TranscriptStatus | '' = $state(status || '');
     let searchTimeout: ReturnType<typeof setTimeout>;
 
     const statusConfig = {
@@ -54,6 +51,7 @@
             class: 'bg-red-100 text-red-800 border-red-200',
         },
     };
+    let selectSearchContent = $derived(selectedStatus ? statusConfig[selectedStatus].label : 'Select Status');
 
     const performSearch = () => {
         const params = new URLSearchParams();
@@ -154,17 +152,18 @@
 
                     <!-- Status Filter -->
                     <div class="sm:w-48">
-                        <select
-                            bind:value={selectedStatus}
-                            onchange={handleStatusFilter}
-                            class="flex h-10 w-full rounded-md border-2 border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                        >
-                            <option value="">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="processing">Processing</option>
-                            <option value="completed">Completed</option>
-                            <option value="failed">Failed</option>
-                        </select>
+                        <Select.Root type="single" bind:value={selectedStatus} onValueChange={handleStatusFilter}>
+                            <Select.Trigger class="w-full border-2">
+                                {selectSearchContent}
+                            </Select.Trigger>
+                            <Select.Content>
+                                <Select.Item value="">All Status</Select.Item>
+                                <Select.Item value="pending">Pending</Select.Item>
+                                <Select.Item value="processing">Processing</Select.Item>
+                                <Select.Item value="completed">Completed</Select.Item>
+                                <Select.Item value="failed">Failed</Select.Item>
+                            </Select.Content>
+                        </Select.Root>
                     </div>
 
                     <!-- Clear Filters -->

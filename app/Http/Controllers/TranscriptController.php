@@ -44,10 +44,8 @@ class TranscriptController extends Controller
 
         return Inertia::render('Transcripts/Index', [
             'transcripts' => $transcripts,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-            ],
+            'search' => $search,
+            'status' => $status,
             'statuses' => Transcript::getStatusOptions(),
         ]);
     }

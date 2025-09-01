@@ -35,6 +35,8 @@
         // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
         "paths": {
             "@/*": ["./resources/js/*"],
+            "$lib": ["./resources/js/lib"],
+            "$lib/*": ["./resources/js/lib/*"],
             "ziggy-js": ["./vendor/tightenco/ziggy"]
         },
         // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
