@@ -1,6 +1,4 @@
 <script lang="ts">
-    import AppLogoIcon from '@/components/AppLogoIcon.svelte';
-
     interface Props {
         class?: string;
     }

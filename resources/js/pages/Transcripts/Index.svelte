@@ -91,10 +91,6 @@
         });
     };
 
-    const getStatusIcon = (status: TranscriptStatus) => {
-        return statusConfig[status]?.icon || Clock;
-    };
-
     const getStatusClass = (status: TranscriptStatus) => {
         return statusConfig[status]?.class || 'bg-gray-100 text-gray-800';
     };
@@ -271,16 +267,16 @@
             {#if transcripts.last_page > 1}
                 <div class="mt-8 flex justify-center">
                     <nav class="flex items-center space-x-1">
-                        {#each transcripts.links as link}
+                        {#each transcripts.links as link (link.url)}
                             {#if link.url}
                                 <Link href={link.url}>
                                     <Button variant={link.active ? 'default' : 'outline'} size="sm" class="border-2">
-                                        {@html link.label}
+                                        {link.label}
                                     </Button>
                                 </Link>
                             {:else}
                                 <Button variant="outline" size="sm" disabled class="border-2">
-                                    {@html link.label}
+                                    {link.label}
                                 </Button>
                             {/if}
                         {/each}

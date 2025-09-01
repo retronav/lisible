@@ -1,5 +1,4 @@
 <script lang="ts">
-    import AppLogoIcon from '@/components/AppLogoIcon.svelte';
     import { Link } from '@inertiajs/svelte';
     import type { Snippet } from 'svelte';
 

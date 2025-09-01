@@ -91,10 +91,6 @@
         });
     };
 
-    const getStatusIcon = () => {
-        return statusConfig[transcript.status]?.icon || Clock;
-    };
-
     const getStatusClass = () => {
         return statusConfig[transcript.status]?.class || 'bg-gray-100 text-gray-800';
     };
@@ -239,15 +235,15 @@
                 <CardHeader>
                     <div class="flex items-center space-x-3">
                         {#if transcript.status === 'pending'}
-                            <Clock class={`h-5 w-5`} />
+                            <Clock class="h-5 w-5" />
                         {:else if transcript.status === 'processing'}
-                            <Loader class={`h-5 w-5 animate-spin`} />
+                            <Loader class="h-5 w-5 animate-spin" />
                         {:else if transcript.status === 'completed'}
-                            <CheckCircle class={`h-5 w-5`} />
+                            <CheckCircle class="h-5 w-5" />
                         {:else if transcript.status === 'failed'}
-                            <XCircle class={`h-5 w-5`} />
+                            <XCircle class="h-5 w-5" />
                         {:else}
-                            <Clock class={`h-5 w-5`} />
+                            <Clock class="h-5 w-5" />
                         {/if}
                         <div>
                             <CardTitle>Status</CardTitle>
@@ -408,7 +404,7 @@
                         </CardHeader>
                         <CardContent>
                             <div class="space-y-4">
-                                {#each data.prescriptions as prescription, index}
+                                {#each data.prescriptions as prescription, index (index)}
                                     <div class="border-l-2 border-primary pl-4">
                                         <div class="font-medium text-sm">{prescription.drug_name}</div>
                                         <div class="text-xs text-muted-foreground mt-1 space-y-1">
@@ -438,7 +434,7 @@
                         </CardHeader>
                         <CardContent>
                             <div class="space-y-3">
-                                {#each data.diagnoses as diagnosis}
+                                {#each data.diagnoses as diagnosis, index (index)}
                                     <div class="border-l-2 border-blue-500 pl-4">
                                         <div class="font-medium text-sm">{diagnosis.condition}</div>
                                         {#if diagnosis.notes}
@@ -462,7 +458,7 @@
                         </CardHeader>
                         <CardContent>
                             <div class="space-y-3">
-                                {#each data.tests as test}
+                                {#each data.tests as test, index (index)}
                                     <div class="border-l-2 border-green-500 pl-4">
                                         <div class="font-medium text-sm">{test.test_name}</div>
                                         <div class="text-xs text-muted-foreground mt-1 space-y-1">
@@ -494,7 +490,7 @@
                         </CardHeader>
                         <CardContent>
                             <div class="space-y-2">
-                                {#each data.observations as observation}
+                                {#each data.observations as observation, index (index)}
                                     <div class="text-sm p-2 bg-muted rounded">
                                         {observation}
                                     </div>

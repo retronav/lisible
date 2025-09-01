@@ -205,7 +205,7 @@
                 <CardContent>
                     {#if recentTranscripts.length > 0}
                         <div class="space-y-4">
-                            {#each recentTranscripts as transcript}
+                            {#each recentTranscripts as transcript (transcript.id)}
                                 {@const StatusIcon = getStatusIcon(transcript.status)}
                                 <div class="flex items-center space-x-4 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
                                     <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">

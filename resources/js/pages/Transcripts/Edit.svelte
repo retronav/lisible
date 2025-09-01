@@ -1,6 +1,5 @@
 <script lang="ts">
     import AppLayout from '@/layouts/AppLayout.svelte';
-    import HeadingSmall from '@/components/HeadingSmall.svelte';
     import InputError from '@/components/InputError.svelte';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
