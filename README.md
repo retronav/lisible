@@ -150,8 +150,6 @@ php artisan test
 ## Learn more / dig deeper
 
 - Technical overview: `docs/TECHNICAL.md`
-- Implementation progress and details: `docs/IMPLEMENTATION.md`
-
 
 ## License
 
