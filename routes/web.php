@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return redirect("dashboard");
+    return redirect('dashboard');
 })->name('home');
 
 Route::get('dashboard', function (Request $request) {
@@ -50,7 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // API endpoint for real-time processing count
     Route::get('api/transcripts/processing-count', function (Request $request) {
         return response()->json([
-            'count' => $request->user()->transcripts()->where('status', 'processing')->count()
+            'count' => $request->user()->transcripts()->where('status', 'processing')->count(),
         ]);
     });
 });

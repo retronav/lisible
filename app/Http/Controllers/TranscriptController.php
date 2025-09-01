@@ -28,7 +28,7 @@ class TranscriptController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%");
+                    ->orWhere('description', 'LIKE', "%{$search}%");
             });
         }
 
@@ -147,7 +147,7 @@ class TranscriptController extends Controller
                 'status' => $transcript->status,
                 'error_message' => $transcript->error_message,
                 'processed_at' => $transcript->processed_at,
-                'has_transcript' => !is_null($transcript->transcript),
+                'has_transcript' => ! is_null($transcript->transcript),
                 'can_retry' => $transcript->status === Transcript::STATUS_FAILED,
                 'is_processing' => $transcript->status === Transcript::STATUS_PROCESSING,
                 'transcript' => $transcript->transcript,
@@ -155,7 +155,7 @@ class TranscriptController extends Controller
                 'description' => $transcript->description,
                 'created_at' => $transcript->created_at,
                 'updated_at' => $transcript->updated_at,
-            ]
+            ],
         ]);
     }
 
@@ -292,7 +292,7 @@ class TranscriptController extends Controller
         }
 
         // Regular update without image change
-        if (!empty($updateData)) {
+        if (! empty($updateData)) {
             $transcript->update($updateData);
         }
 

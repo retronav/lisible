@@ -3,13 +3,12 @@
 use App\Jobs\ProcessTranscription;
 use App\Models\Transcript;
 use App\Services\GeminiService;
-use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
-use Mockery;
 
 // Helper to provide sample transcript data
-function sampleTranscriptData(): array {
+function sampleTranscriptData(): array
+{
     return [
         'patient' => [
             'name' => 'John Doe',
@@ -73,7 +72,7 @@ it('sets job tags correctly', function () {
     $transcript = Transcript::factory()->create();
     $job = new ProcessTranscription($transcript);
 
-    $expectedTags = ['transcription', 'transcript:' . $transcript->id];
+    $expectedTags = ['transcription', 'transcript:'.$transcript->id];
     expect($job->tags())->toBe($expectedTags);
 });
 
@@ -121,8 +120,8 @@ it('produces valid json structure after completion', function () {
     foreach ($requiredKeys as $key) {
         expect($transcriptData)->toHaveKey($key);
     }
-    expect($transcriptData['patient'])->toHaveKeys(['name','age','gender']);
-    expect($transcriptData['doctor'])->toHaveKeys(['name','signature']);
+    expect($transcriptData['patient'])->toHaveKeys(['name', 'age', 'gender']);
+    expect($transcriptData['doctor'])->toHaveKeys(['name', 'signature']);
     expect($transcriptData['prescriptions'])->toBeArray();
     expect($transcriptData['diagnoses'])->toBeArray();
     expect($transcriptData['observations'])->toBeArray();
@@ -204,7 +203,7 @@ it('can be queued', function () {
     $transcript = Transcript::factory()->pending()->create();
     $transcript->dispatchTranscriptionJob();
 
-    Queue::assertPushed(ProcessTranscription::class, function ($job) use ($transcript) {
+    Queue::assertPushed(ProcessTranscription::class, function ($job) {
         return $job->queue === 'transcription';
     });
 });

@@ -128,7 +128,8 @@
         } catch (error) {
             console.error('Error polling status:', error);
         }
-    };    const retryTranscription = () => {
+    };
+    const retryTranscription = () => {
         router.post(
             `/transcripts/${transcript.id}/retry`,
             {},
@@ -356,7 +357,13 @@
                             </div>
                             <div>
                                 <div class="text-sm font-medium text-muted-foreground">Age</div>
-                                <div class="text-sm">{data.patient.age} years</div>
+                                <div class="text-sm">
+                                    {#if data.patient.age === -1}
+                                        Unknown
+                                    {:else}
+                                        {data.patient.age} years
+                                    {/if}
+                                </div>
                             </div>
                         </div>
                         <div>

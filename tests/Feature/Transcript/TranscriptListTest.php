@@ -126,7 +126,7 @@ it("prevents access to other users' transcripts", function () {
     $this->get(route('transcripts.edit', $otherTranscript))->assertStatus(403);
     $this->get(route('transcripts.status', $otherTranscript))->assertStatus(403);
     $this->post(route('transcripts.retry', $otherTranscript))->assertStatus(403);
-    $this->put(route('transcripts.update', $otherTranscript), [ 'title' => 'Hacked Title' ])->assertStatus(403);
+    $this->put(route('transcripts.update', $otherTranscript), ['title' => 'Hacked Title'])->assertStatus(403);
     $this->delete(route('transcripts.destroy', $otherTranscript))->assertStatus(403);
 });
 

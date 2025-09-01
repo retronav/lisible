@@ -19,8 +19,8 @@ return new class extends Migration
             $table->longText('image'); // Store base64 encoded image or file path
             $table->json('transcript')->nullable(); // JSON transcript data
             $table->enum('status', ['pending', 'processing', 'completed', 'failed'])
-                  ->default('pending')
-                  ->index(); // Index for efficient status queries
+                ->default('pending')
+                ->index(); // Index for efficient status queries
             $table->text('error_message')->nullable();
             $table->timestamp('processed_at')->nullable();
             $table->timestamps(); // created_at, updated_at

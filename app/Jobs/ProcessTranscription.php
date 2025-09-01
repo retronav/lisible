@@ -134,6 +134,7 @@ class ProcessTranscription implements ShouldQueue
         $count += isset($transcriptData['patient']) ? 1 : 0;
         $count += isset($transcriptData['doctor']) ? 1 : 0;
         $count += isset($transcriptData['instructions']) ? 1 : 0;
+
         return $count;
     }
 
@@ -142,6 +143,6 @@ class ProcessTranscription implements ShouldQueue
      */
     public function tags(): array
     {
-        return ['transcription', 'transcript:' . $this->transcript->id];
+        return ['transcription', 'transcript:'.$this->transcript->id];
     }
 }

@@ -59,8 +59,11 @@ class Transcript extends Model
      * The possible status values for the transcript.
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_PROCESSING = 'processing';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_FAILED = 'failed';
 
     /**
@@ -81,8 +84,7 @@ class Transcript extends Model
     /**
      * Scope a query to only include transcripts with a specific status.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $status
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeWithStatus($query, string $status)
@@ -93,7 +95,7 @@ class Transcript extends Model
     /**
      * Scope a query to only include completed transcripts.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeCompleted($query)
@@ -104,7 +106,7 @@ class Transcript extends Model
     /**
      * Scope a query to only include failed transcripts.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeFailed($query)
@@ -115,7 +117,7 @@ class Transcript extends Model
     /**
      * Scope a query to only include pending transcripts.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopePending($query)
@@ -126,7 +128,7 @@ class Transcript extends Model
     /**
      * Scope a query to only include processing transcripts.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeProcessing($query)
@@ -136,8 +138,6 @@ class Transcript extends Model
 
     /**
      * Check if the transcript is completed.
-     *
-     * @return bool
      */
     public function isCompleted(): bool
     {
@@ -146,8 +146,6 @@ class Transcript extends Model
 
     /**
      * Check if the transcript is failed.
-     *
-     * @return bool
      */
     public function isFailed(): bool
     {
@@ -156,8 +154,6 @@ class Transcript extends Model
 
     /**
      * Check if the transcript is pending.
-     *
-     * @return bool
      */
     public function isPending(): bool
     {
@@ -166,8 +162,6 @@ class Transcript extends Model
 
     /**
      * Check if the transcript is processing.
-     *
-     * @return bool
      */
     public function isProcessing(): bool
     {
@@ -176,8 +170,6 @@ class Transcript extends Model
 
     /**
      * Mark the transcript as processing.
-     *
-     * @return bool
      */
     public function markAsProcessing(): bool
     {
@@ -186,9 +178,6 @@ class Transcript extends Model
 
     /**
      * Mark the transcript as completed with transcript data.
-     *
-     * @param array $transcriptData
-     * @return bool
      */
     public function markAsCompleted(array $transcriptData): bool
     {
@@ -202,9 +191,6 @@ class Transcript extends Model
 
     /**
      * Mark the transcript as failed with error message.
-     *
-     * @param string $errorMessage
-     * @return bool
      */
     public function markAsFailed(string $errorMessage): bool
     {
@@ -216,8 +202,6 @@ class Transcript extends Model
 
     /**
      * Reset the transcript status to pending for retry.
-     *
-     * @return bool
      */
     public function resetToPending(): bool
     {
@@ -231,9 +215,6 @@ class Transcript extends Model
 
     /**
      * Validate the transcript JSON structure against the expected schema.
-     *
-     * @param array $transcriptData
-     * @return bool
      */
     public static function validateTranscriptSchema(array $transcriptData): bool
     {
@@ -241,55 +222,55 @@ class Transcript extends Model
         $requiredKeys = ['patient', 'date', 'prescriptions', 'diagnoses', 'observations', 'tests', 'instructions', 'doctor'];
 
         foreach ($requiredKeys as $key) {
-            if (!array_key_exists($key, $transcriptData)) {
+            if (! array_key_exists($key, $transcriptData)) {
                 return false;
             }
         }
 
         // Validate patient object
-        if (!is_array($transcriptData['patient']) ||
-            !isset($transcriptData['patient']['name']) ||
-            !isset($transcriptData['patient']['age']) ||
-            !isset($transcriptData['patient']['gender'])) {
+        if (! is_array($transcriptData['patient']) ||
+            ! isset($transcriptData['patient']['name']) ||
+            ! isset($transcriptData['patient']['age']) ||
+            ! isset($transcriptData['patient']['gender'])) {
             return false;
         }
 
         // Validate doctor object
-        if (!is_array($transcriptData['doctor']) ||
-            !isset($transcriptData['doctor']['name']) ||
-            !isset($transcriptData['doctor']['signature'])) {
+        if (! is_array($transcriptData['doctor']) ||
+            ! isset($transcriptData['doctor']['name']) ||
+            ! isset($transcriptData['doctor']['signature'])) {
             return false;
         }
 
         // Validate arrays
         foreach (['prescriptions', 'diagnoses', 'observations', 'tests'] as $arrayKey) {
-            if (!is_array($transcriptData[$arrayKey])) {
+            if (! is_array($transcriptData[$arrayKey])) {
                 return false;
             }
         }
 
         // Validate prescription structure
         foreach ($transcriptData['prescriptions'] as $prescription) {
-            if (!is_array($prescription) ||
-                !isset($prescription['drug_name']) ||
-                !isset($prescription['dosage']) ||
-                !isset($prescription['route']) ||
-                !isset($prescription['frequency']) ||
-                !isset($prescription['duration'])) {
+            if (! is_array($prescription) ||
+                ! isset($prescription['drug_name']) ||
+                ! isset($prescription['dosage']) ||
+                ! isset($prescription['route']) ||
+                ! isset($prescription['frequency']) ||
+                ! isset($prescription['duration'])) {
                 return false;
             }
         }
 
         // Validate diagnoses structure
         foreach ($transcriptData['diagnoses'] as $diagnosis) {
-            if (!is_array($diagnosis) || !isset($diagnosis['condition'])) {
+            if (! is_array($diagnosis) || ! isset($diagnosis['condition'])) {
                 return false;
             }
         }
 
         // Validate tests structure
         foreach ($transcriptData['tests'] as $test) {
-            if (!is_array($test) || !isset($test['test_name'])) {
+            if (! is_array($test) || ! isset($test['test_name'])) {
                 return false;
             }
         }
@@ -299,12 +280,10 @@ class Transcript extends Model
 
     /**
      * Get a formatted display of the transcript data.
-     *
-     * @return array|null
      */
     public function getFormattedTranscript(): ?array
     {
-        if (!$this->transcript || !$this->isCompleted()) {
+        if (! $this->transcript || ! $this->isCompleted()) {
             return null;
         }
 
@@ -313,8 +292,6 @@ class Transcript extends Model
 
     /**
      * Dispatch the transcription job for this transcript.
-     *
-     * @return void
      */
     public function dispatchTranscriptionJob(): void
     {
@@ -326,8 +303,6 @@ class Transcript extends Model
 
     /**
      * Retry a failed transcription by resetting to pending and dispatching job.
-     *
-     * @return void
      */
     public function retryTranscription(): void
     {

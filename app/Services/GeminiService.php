@@ -23,7 +23,9 @@ use Illuminate\Support\Facades\Storage;
 class GeminiService
 {
     protected Client $client;
+
     protected string $model;
+
     protected int $timeout;
 
     public function __construct()
@@ -39,7 +41,7 @@ class GeminiService
     protected function initializeClient(): void
     {
         $apiKey = config('services.gemini.api_key');
-        if (!$apiKey || $apiKey === 'your-api-key-here') {
+        if (! $apiKey || $apiKey === 'your-api-key-here') {
             throw new \Exception('Gemini API key is not configured or still using placeholder value. Please set GEMINI_API_KEY in your .env file.');
         }
 
@@ -52,8 +54,9 @@ class GeminiService
     /**
      * Transcribe a handwritten medical document from the given transcript.
      *
-     * @param Transcript $transcript The transcript containing the image to process
+     * @param  Transcript  $transcript  The transcript containing the image to process
      * @return array The structured transcript data
+     *
      * @throws Exception If transcription fails
      */
     public function transcribeMedicalDocument(Transcript $transcript): array
@@ -85,7 +88,7 @@ class GeminiService
                 ))
                 ->generateContent([
                     $systemPrompt,
-                    $imageData
+                    $imageData,
                 ]);
 
             // Parse and validate the response
@@ -100,7 +103,6 @@ class GeminiService
             ]);
 
             return $transcriptData;
-
         } catch (ErrorException $e) {
             $this->handleGeminiApiError($e, $transcript->id);
             throw $e;
@@ -124,7 +126,7 @@ class GeminiService
         // Get the image data from storage - use public disk since images are stored there
         $imagePath = $transcript->image;
 
-        if (!Storage::disk('public')->exists($imagePath)) {
+        if (! Storage::disk('public')->exists($imagePath)) {
             throw new Exception("Image file not found: {$imagePath}");
         }
 
@@ -187,12 +189,19 @@ IMPORTANT INSTRUCTIONS:
 2. If text is unclear or illegible, note it as "illegible" rather than guessing
 3. Extract and organize information into the specified JSON structure
 4. Pay special attention to drug names, dosages, frequencies, and durations
-5. Preserve all diagnostic information, test results, and clinical observations
-6. Include doctor's name and signature information if visible
-7. Use standard medical abbreviations and terminology when appropriate
+5. Drug frequencies and duration should be given in layman terms using terms such as "times a day/week", "as required", "in emergency", etc.
+6. Preserve all diagnostic information, test results, and clinical observations
+7. Include doctor's name and signature information if visible
+8. Use standard medical abbreviations and terminology when appropriate
+
+INSTRUCTIONS FOR MISSING/ILLEGIBLE DATA:
+- Missing age: set age as -1
+- Missing date: set date as ""
+- Missing name: set name as "Patient"
+- Missing gender: set gender as "Unknown"
 
 QUALITY REQUIREMENTS:
-- Accuracy is paramount - medical information must be precise
+-  All medical information must be precise and accurate
 - If any field cannot be determined from the document, use null or appropriate default
 - Ensure all required fields are populated with available information
 - Maintain consistency in medical terminology and formatting
@@ -313,19 +322,23 @@ PROMPT;
             // Basic validation of required fields
             $requiredFields = ['patient', 'date', 'prescriptions', 'diagnoses', 'observations', 'tests', 'instructions', 'doctor'];
             foreach ($requiredFields as $field) {
-                if (!isset($jsonData[$field])) {
+                if (! isset($jsonData[$field])) {
                     throw new Exception("Missing required field: {$field}");
                 }
             }
 
-            return $jsonData;
+            // Add missing data as much as possible
+            if (isEmptyString($jsonData['date'])) {
+                $jsonData['date'] = date('Y-m-d');
+            }
 
+            return $jsonData;
         } catch (Exception $e) {
             Log::channel('transcription')->error('Failed to parse Gemini API response', [
                 'error' => $e->getMessage(),
                 'response_text' => $response->text() ?? 'No response text',
             ]);
-            throw new Exception('Failed to parse transcription response: ' . $e->getMessage());
+            throw new Exception('Failed to parse transcription response: '.$e->getMessage());
         }
     }
 

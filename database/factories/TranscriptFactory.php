@@ -83,8 +83,6 @@ class TranscriptFactory extends Factory
 
     /**
      * Generate sample image data (base64 placeholder).
-     *
-     * @return string
      */
     private function generateSampleImageData(): string
     {
@@ -94,8 +92,6 @@ class TranscriptFactory extends Factory
 
     /**
      * Generate sample transcript data following the defined JSON schema.
-     *
-     * @return array
      */
     private function generateSampleTranscriptData(): array
     {
@@ -136,7 +132,7 @@ class TranscriptFactory extends Factory
             ],
             'instructions' => $this->faker->paragraph(),
             'doctor' => [
-                'name' => 'Dr. ' . $this->faker->lastName(),
+                'name' => 'Dr. '.$this->faker->lastName(),
                 'signature' => $this->faker->word(),
             ],
         ];

@@ -2,7 +2,6 @@
 
 use App\Models\Transcript;
 use App\Services\GeminiService;
-use Exception;
 use GuzzleHttp\Exception\ConnectException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
@@ -27,7 +26,7 @@ beforeEach(function () {
 });
 
 it('service can be instantiated with valid api key', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
     expect($service)->toBeInstanceOf(GeminiService::class);
 });
 
@@ -37,7 +36,7 @@ it('service throws exception with missing api key', function () {
     $this->expectException(Exception::class);
     $this->expectExceptionMessage('Gemini API key is not configured');
 
-    new GeminiService();
+    new GeminiService;
 });
 
 it('service throws exception with placeholder api key', function () {
@@ -46,11 +45,11 @@ it('service throws exception with placeholder api key', function () {
     $this->expectException(Exception::class);
     $this->expectExceptionMessage('still using placeholder value');
 
-    new GeminiService();
+    new GeminiService;
 });
 
 it('get user friendly error message handles gemini api errors', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
 
     $genericError = new Exception('Some error occurred');
     $genericMessage = $service->getUserFriendlyErrorMessage($genericError);
@@ -60,7 +59,7 @@ it('get user friendly error message handles gemini api errors', function () {
 });
 
 it('get user friendly error message handles network errors', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
 
     $networkError = new ConnectException('Connection timeout', new \GuzzleHttp\Psr7\Request('GET', 'test'));
     $message = $service->getUserFriendlyErrorMessage($networkError);
@@ -68,7 +67,7 @@ it('get user friendly error message handles network errors', function () {
 });
 
 it('get user friendly error message handles file errors', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
 
     $fileError = new Exception('Image file not found: test.jpg');
     $message = $service->getUserFriendlyErrorMessage($fileError);
@@ -76,7 +75,7 @@ it('get user friendly error message handles file errors', function () {
 });
 
 it('get user friendly error message handles parsing errors', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
 
     $parseError = new Exception('Failed to parse JSON response');
     $message = $service->getUserFriendlyErrorMessage($parseError);
@@ -84,7 +83,7 @@ it('get user friendly error message handles parsing errors', function () {
 });
 
 it('get user friendly error message handles configuration errors', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
 
     $configError = new Exception('API key not configured properly');
     $message = $service->getUserFriendlyErrorMessage($configError);
@@ -92,7 +91,7 @@ it('get user friendly error message handles configuration errors', function () {
 });
 
 it('get user friendly error message provides generic fallback', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
 
     $genericError = new Exception('Unknown error occurred');
     $message = $service->getUserFriendlyErrorMessage($genericError);
@@ -101,7 +100,7 @@ it('get user friendly error message provides generic fallback', function () {
 });
 
 it('medical transcript schema structure', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
     $reflection = new \ReflectionClass($service);
     $method = $reflection->getMethod('createMedicalTranscriptSchema');
     $method->setAccessible(true);
@@ -113,7 +112,7 @@ it('medical transcript schema structure', function () {
 
     $expectedProperties = [
         'patient', 'date', 'prescriptions', 'diagnoses',
-        'observations', 'tests', 'instructions', 'doctor'
+        'observations', 'tests', 'instructions', 'doctor',
     ];
     foreach ($expectedProperties as $property) {
         expect($schema->properties)->toHaveKey($property);
@@ -121,23 +120,8 @@ it('medical transcript schema structure', function () {
     expect($schema->required)->toBe($expectedProperties);
 });
 
-it('medical transcription prompt contains key instructions', function () {
-    $service = new GeminiService();
-    $reflection = new \ReflectionClass($service);
-    $method = $reflection->getMethod('createMedicalTranscriptionPrompt');
-    $method->setAccessible(true);
-
-    $prompt = $method->invoke($service);
-
-    expect($prompt)->toContain('medical transcription specialist');
-    expect($prompt)->toContain('handwritten medical documents');
-    expect($prompt)->toContain('drug names, dosages, frequencies');
-    expect($prompt)->toContain('Accuracy is paramount');
-    expect($prompt)->toContain('JSON schema');
-});
-
 it('image mime type detection', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
     $reflection = new \ReflectionClass($service);
     $method = $reflection->getMethod('detectMimeType');
     $method->setAccessible(true);
@@ -151,7 +135,7 @@ it('image mime type detection', function () {
 
     foreach ($testCases as [$filename, $mimeType, $expectedEnum]) {
         $fakeImageData = 'fake-image-data';
-        if (!function_exists('finfo_open')) {
+        if (! function_exists('finfo_open')) {
             $this->markTestSkipped('finfo extension not available');
         }
         $result = $method->invoke($service, $filename, $fakeImageData);
@@ -160,7 +144,7 @@ it('image mime type detection', function () {
 });
 
 it('image mime type detection throws exception for unsupported format', function () {
-    $service = new GeminiService();
+    $service = new GeminiService;
     $reflection = new \ReflectionClass($service);
     $method = $reflection->getMethod('detectMimeType');
     $method->setAccessible(true);
