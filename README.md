@@ -16,6 +16,12 @@ Lisible is a small, privacy-friendly web app that helps you read your doctor's h
 - Tracks status (pending → processing → completed/failed) with clear errors and retry
 - Lets you view, edit, and manage transcripts in a clean dashboard
 
+## A few screenshots
+
+![Dashboard screen](./docs/dashboard.png)
+![Upload screen](./docs/upload.png)
+![Processing state](./docs/processing.png)
+![Transcript detail](./docs/result.png)
 
 ## Quick start (local)
 

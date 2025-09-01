@@ -23,7 +23,7 @@
             href: '/transcripts',
         },
         {
-            title: 'Create New',
+            title: 'Upload',
             href: '/transcripts/create',
         },
     ];
@@ -77,7 +77,7 @@
 </script>
 
 <svelte:head>
-    <title>Create New Transcript</title>
+    <title>Upload Transcript</title>
 </svelte:head>
 
 <AppLayout {breadcrumbs}>
@@ -88,7 +88,7 @@
                     <FileText class="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight">Create New Transcript</h1>
+                    <h1 class="text-2xl font-bold tracking-tight">Upload Transcript</h1>
                     <p class="text-muted-foreground">Upload a handwritten medical document to transcribe</p>
                 </div>
             </div>
@@ -179,7 +179,7 @@
                                     <span>Creating...</span>
                                 </div>
                             {:else}
-                                Create Transcript
+                                Upload Transcript
                             {/if}
                         </Button>
                     </div>

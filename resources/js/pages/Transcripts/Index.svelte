@@ -6,7 +6,7 @@
     import { Badge } from '@/components/ui/badge';
     import { type BreadcrumbItem, type PaginatedTranscripts, type TranscriptStatus } from '@/types';
     import { Link, router } from '@inertiajs/svelte';
-    import { FileText, Plus, Search, Filter, Clock, CheckCircle, XCircle, Loader, Calendar, Eye } from 'lucide-svelte';
+    import { FileText, Search, Filter, Clock, CheckCircle, XCircle, Loader, Calendar, Eye, Upload } from 'lucide-svelte';
     import { onMount } from 'svelte';
     import * as Select from '@/components/ui/select';
 
@@ -125,8 +125,8 @@
             </div>
             <Link href="/transcripts/create">
                 <Button>
-                    <Plus class="inline" />
-                    Create New
+                    <Upload class="inline" />
+                    Upload
                 </Button>
             </Link>
         </div>
@@ -188,8 +188,8 @@
                     </p>
                     <Link href="/transcripts/create">
                         <Button>
-                            <Plus class="inline" />
-                            Create New Transcript
+                            <Upload class="inline" />
+                            Upload Transcript
                         </Button>
                     </Link>
                 </CardContent>

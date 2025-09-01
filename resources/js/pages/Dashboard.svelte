@@ -13,10 +13,11 @@
         Clock,
         CheckCircle,
         XCircle,
-        Plus,
         Activity,
         TrendingUp,
-        Calendar
+        Calendar,
+        Upload
+
     } from 'lucide-svelte';
     import { onMount } from 'svelte';
 
@@ -111,8 +112,8 @@
                 <p class="text-muted-foreground">Overview of your transcription activity</p>
             </div>
             <Button href="/transcripts/create" class="flex items-center space-x-2">
-                <Plus class="h-4 w-4" />
-                <span>Create Transcript</span>
+                <Upload class="h-4 w-4" />
+                <span>Upload Transcript</span>
             </Button>
         </div>
 
@@ -267,7 +268,7 @@
                             class="w-full justify-start"
                             variant="outline"
                         >
-                            <Plus class="h-4 w-4 mr-2" />
+                            <Upload class="h-4 w-4 mr-2" />
                             Upload New Document
                         </Button>
                         <Button

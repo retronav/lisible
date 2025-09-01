@@ -20,7 +20,7 @@
             icon: FileText,
         },
         {
-            title: 'Create New',
+            title: 'Upload',
             href: '/transcripts/create',
             icon: Plus,
         },
