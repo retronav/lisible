@@ -5,6 +5,15 @@ import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    ui: ['bits-ui'],
+                },
+            },
+        },
+    },
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
