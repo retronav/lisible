@@ -1,48 +1,30 @@
 <?php
 
-namespace Tests\Feature\Transcript;
-
 use App\Models\Transcript;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
 
-class TranscriptDeleteTest extends TestCase
-{
-    use RefreshDatabase;
+beforeEach(function () {
+    Storage::fake('public');
+});
 
-    protected User $user;
+it('allows a user to delete their transcript', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+    $transcript = Transcript::factory()->for($user)->completed()->create();
+    $imagePath = $transcript->image;
 
-        // Create a user for authentication
-        $this->user = User::factory()->create();
+    $response = $this->delete(route('transcripts.destroy', $transcript));
 
-        // Set up storage for testing
-        Storage::fake('public');
-    }
+    $response->assertRedirect(route('transcripts.index'))
+        ->assertSessionHas('success', 'Transcript deleted successfully.');
 
-    public function test_user_can_delete_transcript(): void
-    {
-        $this->actingAs($this->user);
+    // Verify soft delete
+    $this->assertSoftDeleted('transcripts', [
+        'id' => $transcript->id,
+    ]);
 
-        $transcript = Transcript::factory()->for($this->user)->completed()->create();
-        $imagePath = $transcript->image;
-
-        $response = $this->delete(route('transcripts.destroy', $transcript));
-
-        $response->assertRedirect(route('transcripts.index'))
-            ->assertSessionHas('success', 'Transcript deleted successfully.');
-
-        // Verify soft delete
-        $this->assertSoftDeleted('transcripts', [
-            'id' => $transcript->id,
-        ]);
-
-        // Verify image path was cleared from record
-        $this->assertNotNull($imagePath);
-    }
-}
+    // Verify image path was cleared from record (we only ensure it existed before deletion)
+    expect($imagePath)->not->toBeNull();
+});

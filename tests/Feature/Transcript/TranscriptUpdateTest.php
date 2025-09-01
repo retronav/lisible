@@ -1,149 +1,130 @@
 <?php
 
-namespace Tests\Feature\Transcript;
-
 use App\Jobs\ProcessTranscription;
 use App\Models\Transcript;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
 
-class TranscriptUpdateTest extends TestCase
-{
-    use RefreshDatabase;
+beforeEach(function () {
+    Storage::fake('public');
+});
 
-    protected User $user;
+it('shows edit form for a transcript', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+    $transcript = Transcript::factory()->for($user)->completed()->create();
 
-        // Create a user for authentication
-        $this->user = User::factory()->create();
+    $response = $this->get(route('transcripts.edit', $transcript));
 
-        // Set up storage for testing
-        Storage::fake('public');
-    }
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Transcripts/Edit')
+            ->where('transcript.id', $transcript->id)
+        );
+});
 
-    public function test_user_can_view_edit_form_for_transcript(): void
-    {
-        $this->actingAs($this->user);
+it('blocks editing while processing', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        $transcript = Transcript::factory()->for($this->user)->completed()->create();
+    $transcript = Transcript::factory()->for($user)->processing()->create();
 
-        $response = $this->get(route('transcripts.edit', $transcript));
+    $response = $this->get(route('transcripts.edit', $transcript));
 
-        $response->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Transcripts/Edit')
-                ->where('transcript.id', $transcript->id)
-            );
-    }
+    $response->assertRedirect(route('transcripts.show', $transcript))
+        ->assertSessionHas('error', 'Cannot edit transcript while it is being processed.');
+});
 
-    public function test_editing_is_blocked_while_processing(): void
-    {
-        $this->actingAs($this->user);
+it('updates transcript metadata', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        $transcript = Transcript::factory()->for($this->user)->processing()->create();
+    $transcript = Transcript::factory()->for($user)->completed()->create([
+        'title' => 'Old Title',
+        'description' => 'Old Description',
+    ]);
 
-        $response = $this->get(route('transcripts.edit', $transcript));
+    $response = $this->put(route('transcripts.update', $transcript), [
+        'title' => 'New Title',
+        'description' => 'New Description',
+    ]);
 
-        $response->assertRedirect(route('transcripts.show', $transcript))
-            ->assertSessionHas('error', 'Cannot edit transcript while it is being processed.');
-    }
+    $response->assertRedirect(route('transcripts.show', $transcript))
+        ->assertSessionHas('success', 'Transcript updated successfully.');
 
-    public function test_user_can_update_transcript_metadata(): void
-    {
-        $this->actingAs($this->user);
+    $transcript->refresh();
+    expect($transcript->title)->toBe('New Title');
+    expect($transcript->description)->toBe('New Description');
+});
 
-        $transcript = Transcript::factory()->for($this->user)->completed()->create([
-            'title' => 'Old Title',
-            'description' => 'Old Description',
+it('reprocesses when a new image is uploaded on update', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    Queue::fake();
+
+    $transcript = Transcript::factory()->for($user)->completed()->create();
+    $oldImagePath = $transcript->image;
+
+    $newImage = UploadedFile::fake()->image('new-prescription.jpg');
+
+    $response = $this->put(route('transcripts.update', $transcript), [
+        'title' => 'Updated Title',
+        'image' => $newImage,
+    ]);
+
+    $response->assertRedirect(route('transcripts.show', $transcript))
+        ->assertSessionHas('success', 'Transcript updated successfully. Re-processing will begin shortly.');
+
+    $transcript->refresh();
+
+    // Verify old image was deleted and new one stored
+    expect($transcript->image)->not->toBe($oldImagePath);
+    expect($transcript->image)->not->toBeNull();
+
+    // Verify reprocessing was triggered
+    expect($transcript->status)->toBe(Transcript::STATUS_PENDING);
+    expect($transcript->transcript)->toBeNull();
+
+    // Verify job was dispatched
+    Queue::assertPushed(ProcessTranscription::class);
+});
+
+it('allows retrying a failed transcript', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    Queue::fake();
+
+    $transcript = Transcript::factory()->for($user)->failed()->create();
+
+    $response = $this->postJson(route('transcripts.retry', $transcript));
+
+    $response->assertOk()
+        ->assertJson([
+            'success' => true,
+            'status' => Transcript::STATUS_PENDING,
         ]);
 
-        $response = $this->put(route('transcripts.update', $transcript), [
-            'title' => 'New Title',
-            'description' => 'New Description',
+    $transcript->refresh();
+    expect($transcript->status)->toBe(Transcript::STATUS_PENDING);
+    expect($transcript->error_message)->toBeNull();
+
+    Queue::assertPushed(ProcessTranscription::class);
+});
+
+it('only allows retry for failed transcripts', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $transcript = Transcript::factory()->for($user)->completed()->create();
+
+    $response = $this->postJson(route('transcripts.retry', $transcript));
+
+    $response->assertStatus(400)
+        ->assertJson([
+            'success' => false,
+            'message' => 'Only failed transcripts can be retried.',
         ]);
-
-        $response->assertRedirect(route('transcripts.show', $transcript))
-            ->assertSessionHas('success', 'Transcript updated successfully.');
-
-        $transcript->refresh();
-        $this->assertEquals('New Title', $transcript->title);
-        $this->assertEquals('New Description', $transcript->description);
-    }
-
-    public function test_updating_with_new_image_triggers_reprocessing(): void
-    {
-        $this->actingAs($this->user);
-        Queue::fake();
-
-        $transcript = Transcript::factory()->for($this->user)->completed()->create();
-        $oldImagePath = $transcript->image;
-
-        $newImage = UploadedFile::fake()->image('new-prescription.jpg');
-
-        $response = $this->put(route('transcripts.update', $transcript), [
-            'title' => 'Updated Title',
-            'image' => $newImage,
-        ]);
-
-        $response->assertRedirect(route('transcripts.show', $transcript))
-            ->assertSessionHas('success', 'Transcript updated successfully. Re-processing will begin shortly.');
-
-        $transcript->refresh();
-
-        // Verify old image was deleted and new one stored
-        $this->assertNotEquals($oldImagePath, $transcript->image);
-        $this->assertNotNull($transcript->image);
-
-        // Verify reprocessing was triggered
-        $this->assertEquals(Transcript::STATUS_PENDING, $transcript->status);
-        $this->assertNull($transcript->transcript);
-
-        // Verify job was dispatched
-        Queue::assertPushed(ProcessTranscription::class);
-    }
-
-    public function test_user_can_retry_failed_transcript(): void
-    {
-        $this->actingAs($this->user);
-        Queue::fake();
-
-        $transcript = Transcript::factory()->for($this->user)->failed()->create();
-
-        $response = $this->postJson(route('transcripts.retry', $transcript));
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'status' => Transcript::STATUS_PENDING,
-            ]);
-
-        $transcript->refresh();
-        $this->assertEquals(Transcript::STATUS_PENDING, $transcript->status);
-        $this->assertNull($transcript->error_message);
-
-        // Verify job was dispatched
-        Queue::assertPushed(ProcessTranscription::class);
-    }
-
-    public function test_retry_is_only_allowed_for_failed_transcripts(): void
-    {
-        $this->actingAs($this->user);
-
-        $transcript = Transcript::factory()->for($this->user)->completed()->create();
-
-        $response = $this->postJson(route('transcripts.retry', $transcript));
-
-        $response->assertStatus(400)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Only failed transcripts can be retried.',
-            ]);
-    }
-}
+});

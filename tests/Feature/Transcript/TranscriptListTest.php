@@ -1,189 +1,149 @@
 <?php
 
-namespace Tests\Feature\Transcript;
-
 use App\Models\Transcript;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
 
-class TranscriptListTest extends TestCase
-{
-    use RefreshDatabase;
+beforeEach(function () {
+    Storage::fake('public');
+});
 
-    protected User $user;
+it('prevents unauthenticated access to transcript routes', function () {
+    $user = User::factory()->create();
+    $transcript = Transcript::factory()->for($user)->create();
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+    $this->get(route('transcripts.index'))
+        ->assertRedirect(route('login'));
 
-        // Create a user for authentication
-        $this->user = User::factory()->create();
+    $this->get(route('transcripts.create'))
+        ->assertRedirect(route('login'));
 
-        // Set up storage for testing
-        Storage::fake('public');
-    }
+    $this->get(route('transcripts.show', $transcript))
+        ->assertRedirect(route('login'));
 
-    public function test_unauthenticated_users_cannot_access_transcript_routes(): void
-    {
-        $transcript = Transcript::factory()->for($this->user)->create();
+    $this->get(route('transcripts.edit', $transcript))
+        ->assertRedirect(route('login'));
+});
 
-        // Test various routes
-        $this->get(route('transcripts.index'))
-            ->assertRedirect(route('login'));
+it('shows transcripts index for authenticated user', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        $this->get(route('transcripts.create'))
-            ->assertRedirect(route('login'));
+    Transcript::factory()->for($user)->count(5)->create();
 
-        $this->get(route('transcripts.show', $transcript))
-            ->assertRedirect(route('login'));
+    $response = $this->get(route('transcripts.index'));
 
-        $this->get(route('transcripts.edit', $transcript))
-            ->assertRedirect(route('login'));
-    }
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Transcripts/Index')
+            ->has('transcripts.data', 5)
+            ->has('search')
+            ->has('status')
+            ->has('statuses')
+        );
+});
 
-    public function test_authenticated_user_can_view_transcripts_index(): void
-    {
-        $this->actingAs($this->user);
+it('can search the index by title', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        // Create some test transcripts for this user
-        Transcript::factory()
-            ->for($this->user)
-            ->count(5)
-            ->create();
+    Transcript::factory()->for($user)->create(['title' => 'Medical Record 1']);
+    Transcript::factory()->for($user)->create(['title' => 'Patient Chart']);
+    Transcript::factory()->for($user)->create(['title' => 'Medical Record 2']);
 
-        $response = $this->get(route('transcripts.index'));
+    $response = $this->get(route('transcripts.index', ['search' => 'Medical Record']));
 
-        $response->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Transcripts/Index')
-                ->has('transcripts.data', 5)
-                ->has('search')
-                ->has('status')
-                ->has('statuses')
-            );
-    }
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Transcripts/Index')
+            ->has('transcripts.data', 2)
+            ->where('search', 'Medical Record')
+        );
+});
 
-    public function test_transcript_index_can_search_by_title(): void
-    {
-        $this->actingAs($this->user);
+it('can filter the index by status', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        Transcript::factory()->for($this->user)->create(['title' => 'Medical Record 1']);
-        Transcript::factory()->for($this->user)->create(['title' => 'Patient Chart']);
-        Transcript::factory()->for($this->user)->create(['title' => 'Medical Record 2']);
+    Transcript::factory()->for($user)->completed()->count(2)->create();
+    Transcript::factory()->for($user)->failed()->count(3)->create();
+    Transcript::factory()->for($user)->pending()->create();
 
-        $response = $this->get(route('transcripts.index', ['search' => 'Medical Record']));
+    $response = $this->get(route('transcripts.index', ['status' => 'failed']));
 
-        $response->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Transcripts/Index')
-                ->has('transcripts.data', 2)
-                ->where('search', 'Medical Record')
-            );
-    }
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Transcripts/Index')
+            ->has('transcripts.data', 3)
+            ->where('status', 'failed')
+        );
+});
 
-    public function test_transcript_index_can_filter_by_status(): void
-    {
-        $this->actingAs($this->user);
+it('shows transcript details to the owner', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        Transcript::factory()->for($this->user)->completed()->count(2)->create();
-        Transcript::factory()->for($this->user)->failed()->count(3)->create();
-        Transcript::factory()->for($this->user)->pending()->create();
+    $transcript = Transcript::factory()->for($user)->completed()->create([
+        'title' => 'Test Medical Record',
+        'description' => 'Test description',
+    ]);
 
-        $response = $this->get(route('transcripts.index', ['status' => 'failed']));
+    $response = $this->get(route('transcripts.show', $transcript));
 
-        $response->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Transcripts/Index')
-                ->has('transcripts.data', 3)
-                ->where('status', 'failed')
-            );
-    }
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Transcripts/Show')
+            ->where('transcript.id', $transcript->id)
+            ->where('transcript.title', 'Test Medical Record')
+            ->where('transcript.status', Transcript::STATUS_COMPLETED)
+            ->has('transcript.transcript')
+        );
+});
 
-    public function test_user_can_view_transcript_details(): void
-    {
-        $this->actingAs($this->user);
+it('allows checking transcript status via api', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        $transcript = Transcript::factory()->for($this->user)->completed()->create([
-            'title' => 'Test Medical Record',
-            'description' => 'Test description',
-        ]);
+    $transcript = Transcript::factory()->for($user)->processing()->create();
 
-        $response = $this->get(route('transcripts.show', $transcript));
+    $response = $this->get(route('transcripts.status', $transcript));
 
-        $response->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Transcripts/Show')
-                ->where('transcript.id', $transcript->id)
-                ->where('transcript.title', 'Test Medical Record')
-                ->where('transcript.status', Transcript::STATUS_COMPLETED)
-                ->has('transcript.transcript')
-            );
-    }
+    $response->assertOk()
+        ->assertJsonPath('transcript.id', $transcript->id)
+        ->assertJsonPath('transcript.status', Transcript::STATUS_PROCESSING)
+        ->assertJsonPath('transcript.is_processing', true)
+        ->assertJsonPath('transcript.can_retry', false);
+});
 
-    public function test_user_can_check_transcript_status_via_api(): void
-    {
-        $this->actingAs($this->user);
+it("prevents access to other users' transcripts", function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        $transcript = Transcript::factory()->for($this->user)->processing()->create();
+    $otherUser = User::factory()->create();
+    $otherTranscript = Transcript::factory()->for($otherUser)->create();
 
-        $response = $this->get(route('transcripts.status', $transcript));
+    $this->get(route('transcripts.show', $otherTranscript))->assertStatus(403);
+    $this->get(route('transcripts.edit', $otherTranscript))->assertStatus(403);
+    $this->get(route('transcripts.status', $otherTranscript))->assertStatus(403);
+    $this->post(route('transcripts.retry', $otherTranscript))->assertStatus(403);
+    $this->put(route('transcripts.update', $otherTranscript), [ 'title' => 'Hacked Title' ])->assertStatus(403);
+    $this->delete(route('transcripts.destroy', $otherTranscript))->assertStatus(403);
+});
 
-        $response->assertOk()
-            ->assertJsonPath('transcript.id', $transcript->id)
-            ->assertJsonPath('transcript.status', Transcript::STATUS_PROCESSING)
-            ->assertJsonPath('transcript.is_processing', true)
-            ->assertJsonPath('transcript.can_retry', false);
-    }
+it('shows only the users own transcripts in the index', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-    public function test_users_cannot_view_other_users_transcripts(): void
-    {
-        $this->actingAs($this->user);
+    Transcript::factory()->for($user)->count(3)->create();
 
-        // Create another user and their transcript
-        $otherUser = User::factory()->create();
-        $otherTranscript = Transcript::factory()->for($otherUser)->create();
+    $otherUser = User::factory()->create();
+    Transcript::factory()->for($otherUser)->count(2)->create();
 
-        // Try to access the other user's transcript
-        $response = $this->get(route('transcripts.show', $otherTranscript));
-        $response->assertStatus(403);
+    $response = $this->get(route('transcripts.index'));
 
-        $response = $this->get(route('transcripts.edit', $otherTranscript));
-        $response->assertStatus(403);
-
-        $response = $this->get(route('transcripts.status', $otherTranscript));
-        $response->assertStatus(403);
-
-        $response = $this->post(route('transcripts.retry', $otherTranscript));
-        $response->assertStatus(403);
-
-        $response = $this->put(route('transcripts.update', $otherTranscript), [
-            'title' => 'Hacked Title',
-        ]);
-        $response->assertStatus(403);
-
-        $response = $this->delete(route('transcripts.destroy', $otherTranscript));
-        $response->assertStatus(403);
-    }
-
-    public function test_user_index_only_shows_their_own_transcripts(): void
-    {
-        $this->actingAs($this->user);
-
-        // Create transcripts for this user
-        Transcript::factory()->for($this->user)->count(3)->create();
-
-        // Create transcripts for another user
-        $otherUser = User::factory()->create();
-        Transcript::factory()->for($otherUser)->count(2)->create();
-
-        $response = $this->get(route('transcripts.index'));
-
-        $response->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Transcripts/Index')
-                ->has('transcripts.data', 3) // Should only see their own 3 transcripts
-            );
-    }
-}
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Transcripts/Index')
+            ->has('transcripts.data', 3)
+        );
+});

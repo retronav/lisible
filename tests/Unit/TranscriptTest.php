@@ -1,425 +1,377 @@
 <?php
 
-namespace Tests\Unit;
-
 use App\Models\Transcript;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use App\Models\User;
 
-class TranscriptTest extends TestCase
-{
-    use RefreshDatabase;
+it('can be created with required attributes', function () {
+    $transcript = Transcript::factory()->create([
+        'title' => 'Test Transcript',
+        'description' => 'Test Description',
+        'image' => 'data:image/png;base64,test',
+        'status' => Transcript::STATUS_PENDING,
+    ]);
 
-    public function test_can_be_created_with_required_attributes()
-    {
-        $transcript = Transcript::factory()->create([
-            'title' => 'Test Transcript',
-            'description' => 'Test Description',
-            'image' => 'data:image/png;base64,test',
-            'status' => Transcript::STATUS_PENDING,
-        ]);
+    expect($transcript)->toBeInstanceOf(Transcript::class);
+    expect($transcript->user_id)->not->toBeNull();
+    expect($transcript->title)->toBe('Test Transcript');
+    expect($transcript->description)->toBe('Test Description');
+    expect($transcript->image)->toBe('data:image/png;base64,test');
+    expect($transcript->status)->toBe(Transcript::STATUS_PENDING);
+    expect($transcript->transcript)->toBeNull();
+    expect($transcript->error_message)->toBeNull();
+    expect($transcript->processed_at)->toBeNull();
+});
 
-        $this->assertInstanceOf(Transcript::class, $transcript);
-        $this->assertNotNull($transcript->user_id);
-        $this->assertEquals('Test Transcript', $transcript->title);
-        $this->assertEquals('Test Description', $transcript->description);
-        $this->assertEquals('data:image/png;base64,test', $transcript->image);
-        $this->assertEquals(Transcript::STATUS_PENDING, $transcript->status);
-        $this->assertNull($transcript->transcript);
-        $this->assertNull($transcript->error_message);
-        $this->assertNull($transcript->processed_at);
-    }
+it('can be created without optional attributes', function () {
+    $transcript = Transcript::factory()->create([
+        'title' => 'Test Transcript',
+        'description' => null,
+        'image' => 'data:image/png;base64,test',
+        'status' => Transcript::STATUS_PENDING,
+    ]);
 
-    public function test_can_be_created_without_optional_attributes()
-    {
-        $transcript = Transcript::factory()->create([
-            'title' => 'Test Transcript',
-            'description' => null, // Explicitly set to null
-            'image' => 'data:image/png;base64,test',
-            'status' => Transcript::STATUS_PENDING,
-        ]);
+    expect($transcript)->toBeInstanceOf(Transcript::class);
+    expect($transcript->user_id)->not->toBeNull();
+    expect($transcript->title)->toBe('Test Transcript');
+    expect($transcript->description)->toBeNull();
+    expect($transcript->status)->toBe(Transcript::STATUS_PENDING);
+});
 
-        $this->assertInstanceOf(Transcript::class, $transcript);
-        $this->assertNotNull($transcript->user_id);
-        $this->assertEquals('Test Transcript', $transcript->title);
-        $this->assertNull($transcript->description);
-        $this->assertEquals(Transcript::STATUS_PENDING, $transcript->status);
-    }
+it('casts transcript attribute as array', function () {
+    $transcriptData = [
+        'patient' => ['name' => 'John Doe', 'age' => 30, 'gender' => 'Male'],
+        'date' => '2025-08-31',
+        'prescriptions' => [],
+        'diagnoses' => [],
+        'observations' => [],
+        'tests' => [],
+        'instructions' => 'Follow up in 2 weeks',
+        'doctor' => ['name' => 'Dr. Smith', 'signature' => 'S.Smith'],
+    ];
 
-    public function test_casts_transcript_attribute_as_array()
-    {
-        $transcriptData = [
-            'patient' => ['name' => 'John Doe', 'age' => 30, 'gender' => 'Male'],
-            'date' => '2025-08-31',
-            'prescriptions' => [],
-            'diagnoses' => [],
-            'observations' => [],
-            'tests' => [],
-            'instructions' => 'Follow up in 2 weeks',
-            'doctor' => ['name' => 'Dr. Smith', 'signature' => 'S.Smith'],
-        ];
+    $transcript = Transcript::factory()->create([
+        'title' => 'Test Transcript',
+        'image' => 'data:image/png;base64,test',
+        'status' => Transcript::STATUS_COMPLETED,
+        'transcript' => $transcriptData,
+    ]);
 
-        $transcript = Transcript::factory()->create([
-            'title' => 'Test Transcript',
-            'image' => 'data:image/png;base64,test',
-            'status' => Transcript::STATUS_COMPLETED,
-            'transcript' => $transcriptData,
-        ]);
+    expect($transcript->transcript)->toBeArray();
+    expect($transcript->transcript['patient']['name'])->toBe('John Doe');
+});
 
-        $this->assertIsArray($transcript->transcript);
-        $this->assertEquals('John Doe', $transcript->transcript['patient']['name']);
-    }
+it('has soft deletes enabled', function () {
+    $transcript = Transcript::factory()->create();
+    $transcript->delete();
 
-    public function test_has_soft_deletes_enabled()
-    {
-        $transcript = Transcript::factory()->create();
+    expect($transcript->trashed())->toBeTrue();
+    expect(Transcript::count())->toBe(0);
+    expect(Transcript::withTrashed()->count())->toBe(1);
+});
 
-        $transcript->delete();
+it('has correct status constants', function () {
+    expect(Transcript::STATUS_PENDING)->toBe('pending');
+    expect(Transcript::STATUS_PROCESSING)->toBe('processing');
+    expect(Transcript::STATUS_COMPLETED)->toBe('completed');
+    expect(Transcript::STATUS_FAILED)->toBe('failed');
+});
 
-        $this->assertTrue($transcript->trashed());
-        $this->assertEquals(0, Transcript::count());
-        $this->assertEquals(1, Transcript::withTrashed()->count());
-    }
+it('returns all status options', function () {
+    $statusOptions = Transcript::getStatusOptions();
+    expect($statusOptions)->toBeArray()->and($statusOptions)->toHaveCount(4);
+    expect($statusOptions)->toContain('pending', 'processing', 'completed', 'failed');
+});
 
-    public function test_has_correct_status_constants()
-    {
-        $this->assertEquals('pending', Transcript::STATUS_PENDING);
-        $this->assertEquals('processing', Transcript::STATUS_PROCESSING);
-        $this->assertEquals('completed', Transcript::STATUS_COMPLETED);
-        $this->assertEquals('failed', Transcript::STATUS_FAILED);
-    }
+it('can check status methods', function () {
+    $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
 
-    public function test_returns_all_status_options()
-    {
-        $statusOptions = Transcript::getStatusOptions();
+    expect($transcript->isPending())->toBeTrue();
+    expect($transcript->isProcessing())->toBeFalse();
+    expect($transcript->isCompleted())->toBeFalse();
+    expect($transcript->isFailed())->toBeFalse();
+});
 
-        $this->assertIsArray($statusOptions);
-        $this->assertCount(4, $statusOptions);
-        $this->assertContains('pending', $statusOptions);
-        $this->assertContains('processing', $statusOptions);
-        $this->assertContains('completed', $statusOptions);
-        $this->assertContains('failed', $statusOptions);
-    }
+it('can mark transcript as processing', function () {
+    $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
 
-    public function test_can_check_status_methods()
-    {
-        $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
+    $result = $transcript->markAsProcessing();
 
-        $this->assertTrue($transcript->isPending());
-        $this->assertFalse($transcript->isProcessing());
-        $this->assertFalse($transcript->isCompleted());
-        $this->assertFalse($transcript->isFailed());
-    }
+    expect($result)->toBeTrue();
+    expect($transcript->fresh()->status)->toBe(Transcript::STATUS_PROCESSING);
+    expect($transcript->fresh()->isProcessing())->toBeTrue();
+});
 
-    public function test_can_mark_transcript_as_processing()
-    {
-        $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
+it('can mark transcript as completed with data', function () {
+    $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
+    $transcriptData = [
+        'patient' => ['name' => 'Jane Doe', 'age' => 25, 'gender' => 'Female'],
+        'date' => '2025-08-31',
+        'prescriptions' => [],
+        'diagnoses' => [],
+        'observations' => [],
+        'tests' => [],
+        'instructions' => 'Take medication as prescribed',
+        'doctor' => ['name' => 'Dr. Johnson', 'signature' => 'J.Johnson'],
+    ];
 
-        $result = $transcript->markAsProcessing();
+    $result = $transcript->markAsCompleted($transcriptData);
+    $updatedTranscript = $transcript->fresh();
 
-        $this->assertTrue($result);
-        $this->assertEquals(Transcript::STATUS_PROCESSING, $transcript->fresh()->status);
-        $this->assertTrue($transcript->fresh()->isProcessing());
-    }
+    expect($result)->toBeTrue();
+    expect($updatedTranscript->status)->toBe(Transcript::STATUS_COMPLETED);
+    expect($updatedTranscript->transcript)->toBeArray();
+    expect($updatedTranscript->transcript['patient']['name'])->toBe('Jane Doe');
+    expect($updatedTranscript->processed_at)->not->toBeNull();
+    expect($updatedTranscript->error_message)->toBeNull();
+    expect($updatedTranscript->isCompleted())->toBeTrue();
+});
 
-    public function test_can_mark_transcript_as_completed_with_data()
-    {
-        $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
-        $transcriptData = [
-            'patient' => ['name' => 'Jane Doe', 'age' => 25, 'gender' => 'Female'],
-            'date' => '2025-08-31',
-            'prescriptions' => [],
-            'diagnoses' => [],
-            'observations' => [],
-            'tests' => [],
-            'instructions' => 'Take medication as prescribed',
-            'doctor' => ['name' => 'Dr. Johnson', 'signature' => 'J.Johnson'],
-        ];
+it('can mark transcript as failed with error message', function () {
+    $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
+    $errorMessage = 'API_ERROR: Failed to process image';
 
-        $result = $transcript->markAsCompleted($transcriptData);
-        $updatedTranscript = $transcript->fresh();
+    $result = $transcript->markAsFailed($errorMessage);
+    $updatedTranscript = $transcript->fresh();
 
-        $this->assertTrue($result);
-        $this->assertEquals(Transcript::STATUS_COMPLETED, $updatedTranscript->status);
-        $this->assertIsArray($updatedTranscript->transcript);
-        $this->assertEquals('Jane Doe', $updatedTranscript->transcript['patient']['name']);
-        $this->assertNotNull($updatedTranscript->processed_at);
-        $this->assertNull($updatedTranscript->error_message);
-        $this->assertTrue($updatedTranscript->isCompleted());
-    }
+    expect($result)->toBeTrue();
+    expect($updatedTranscript->status)->toBe(Transcript::STATUS_FAILED);
+    expect($updatedTranscript->error_message)->toBe($errorMessage);
+    expect($updatedTranscript->isFailed())->toBeTrue();
+});
 
-    public function test_can_mark_transcript_as_failed_with_error_message()
-    {
-        $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
-        $errorMessage = 'API_ERROR: Failed to process image';
+it('can reset transcript to pending', function () {
+    $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
 
-        $result = $transcript->markAsFailed($errorMessage);
-        $updatedTranscript = $transcript->fresh();
+    $transcript->markAsCompleted([
+        'patient' => ['name' => 'Test', 'age' => 30, 'gender' => 'Male'],
+        'date' => '2025-08-31',
+        'prescriptions' => [],
+        'diagnoses' => [],
+        'observations' => [],
+        'tests' => [],
+        'instructions' => 'Test',
+        'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
+    ]);
 
-        $this->assertTrue($result);
-        $this->assertEquals(Transcript::STATUS_FAILED, $updatedTranscript->status);
-        $this->assertEquals($errorMessage, $updatedTranscript->error_message);
-        $this->assertTrue($updatedTranscript->isFailed());
-    }
+    $result = $transcript->resetToPending();
+    $updatedTranscript = $transcript->fresh();
 
-    public function test_can_reset_transcript_to_pending()
-    {
-        $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
+    expect($result)->toBeTrue();
+    expect($updatedTranscript->status)->toBe(Transcript::STATUS_PENDING);
+    expect($updatedTranscript->transcript)->toBeNull();
+    expect($updatedTranscript->error_message)->toBeNull();
+    expect($updatedTranscript->processed_at)->toBeNull();
+    expect($updatedTranscript->isPending())->toBeTrue();
+});
 
-        // First mark as completed with data
-        $transcript->markAsCompleted([
-            'patient' => ['name' => 'Test', 'age' => 30, 'gender' => 'Male'],
-            'date' => '2025-08-31',
-            'prescriptions' => [],
-            'diagnoses' => [],
-            'observations' => [],
-            'tests' => [],
-            'instructions' => 'Test',
-            'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
-        ]);
+it('scopes filter transcripts by status', function () {
+    Transcript::factory()->count(3)->create(['status' => Transcript::STATUS_PENDING]);
+    Transcript::factory()->count(2)->create(['status' => Transcript::STATUS_PROCESSING]);
+    Transcript::factory()->completed()->count(4)->create();
+    Transcript::factory()->failed()->count(1)->create();
 
-        // Then reset to pending
-        $result = $transcript->resetToPending();
-        $updatedTranscript = $transcript->fresh();
+    expect(Transcript::withStatus(Transcript::STATUS_PENDING)->count())->toBe(3);
+    expect(Transcript::withStatus(Transcript::STATUS_PROCESSING)->count())->toBe(2);
+    expect(Transcript::pending()->count())->toBe(3);
+    expect(Transcript::processing()->count())->toBe(2);
+    expect(Transcript::completed()->count())->toBe(4);
+    expect(Transcript::failed()->count())->toBe(1);
+});
 
-        $this->assertTrue($result);
-        $this->assertEquals(Transcript::STATUS_PENDING, $updatedTranscript->status);
-        $this->assertNull($updatedTranscript->transcript);
-        $this->assertNull($updatedTranscript->error_message);
-        $this->assertNull($updatedTranscript->processed_at);
-        $this->assertTrue($updatedTranscript->isPending());
-    }
-
-    public function test_scopes_filter_transcripts_by_status()
-    {
-        // Create transcripts in different states
-        Transcript::factory()->count(3)->create(['status' => Transcript::STATUS_PENDING]);
-        Transcript::factory()->count(2)->create(['status' => Transcript::STATUS_PROCESSING]);
-        Transcript::factory()->completed()->count(4)->create();
-        Transcript::factory()->failed()->count(1)->create();
-
-        $this->assertEquals(3, Transcript::withStatus(Transcript::STATUS_PENDING)->count());
-        $this->assertEquals(2, Transcript::withStatus(Transcript::STATUS_PROCESSING)->count());
-        $this->assertEquals(3, Transcript::pending()->count());
-        $this->assertEquals(2, Transcript::processing()->count());
-        $this->assertEquals(4, Transcript::completed()->count());
-        $this->assertEquals(1, Transcript::failed()->count());
-    }
-
-    public function test_validates_complete_valid_transcript_data()
-    {
-        $validData = [
-            'patient' => [
-                'name' => 'John Doe',
-                'age' => 35,
-                'gender' => 'Male',
+it('validates complete valid transcript data', function () {
+    $validData = [
+        'patient' => [
+            'name' => 'John Doe',
+            'age' => 35,
+            'gender' => 'Male',
+        ],
+        'date' => '2025-08-31',
+        'prescriptions' => [
+            [
+                'drug_name' => 'Aspirin',
+                'dosage' => '81mg',
+                'route' => 'Oral',
+                'frequency' => 'Once daily',
+                'duration' => '30 days',
+                'notes' => 'With food',
             ],
-            'date' => '2025-08-31',
-            'prescriptions' => [
-                [
-                    'drug_name' => 'Aspirin',
-                    'dosage' => '81mg',
-                    'route' => 'Oral',
-                    'frequency' => 'Once daily',
-                    'duration' => '30 days',
-                    'notes' => 'With food',
-                ],
+        ],
+        'diagnoses' => [
+            [
+                'condition' => 'Hypertension',
+                'notes' => 'Stage 1',
             ],
-            'diagnoses' => [
-                [
-                    'condition' => 'Hypertension',
-                    'notes' => 'Stage 1',
-                ],
+        ],
+        'observations' => [
+            'Patient appears well',
+            'No acute distress',
+        ],
+        'tests' => [
+            [
+                'test_name' => 'Blood Pressure',
+                'result' => '130/85',
+                'normal_range' => '<120/80',
+                'notes' => 'Elevated',
             ],
-            'observations' => [
-                'Patient appears well',
-                'No acute distress',
+        ],
+        'instructions' => 'Take medication as prescribed and return in 4 weeks',
+        'doctor' => [
+            'name' => 'Dr. Sarah Johnson',
+            'signature' => 'S.Johnson',
+        ],
+    ];
+
+    expect(Transcript::validateTranscriptSchema($validData))->toBeTrue();
+});
+
+it('rejects transcript data missing required top level keys', function () {
+    $incompleteData = [
+        'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
+        'date' => '2025-08-31',
+    ];
+
+    expect(Transcript::validateTranscriptSchema($incompleteData))->toBeFalse();
+});
+
+it('rejects transcript data with invalid patient structure', function () {
+    $invalidPatientData = [
+        'patient' => [
+            'name' => 'John Doe',
+        ],
+        'date' => '2025-08-31',
+        'prescriptions' => [],
+        'diagnoses' => [],
+        'observations' => [],
+        'tests' => [],
+        'instructions' => 'Test',
+        'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
+    ];
+
+    expect(Transcript::validateTranscriptSchema($invalidPatientData))->toBeFalse();
+});
+
+it('rejects transcript data with invalid doctor structure', function () {
+    $invalidDoctorData = [
+        'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
+        'date' => '2025-08-31',
+        'prescriptions' => [],
+        'diagnoses' => [],
+        'observations' => [],
+        'tests' => [],
+        'instructions' => 'Test',
+        'doctor' => [
+            'name' => 'Dr. Test',
+        ],
+    ];
+
+    expect(Transcript::validateTranscriptSchema($invalidDoctorData))->toBeFalse();
+});
+
+it('rejects transcript data with invalid prescription structure', function () {
+    $invalidPrescriptionData = [
+        'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
+        'date' => '2025-08-31',
+        'prescriptions' => [
+            [
+                'drug_name' => 'Aspirin',
             ],
-            'tests' => [
-                [
-                    'test_name' => 'Blood Pressure',
-                    'result' => '130/85',
-                    'normal_range' => '<120/80',
-                    'notes' => 'Elevated',
-                ],
+        ],
+        'diagnoses' => [],
+        'observations' => [],
+        'tests' => [],
+        'instructions' => 'Test',
+        'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
+    ];
+
+    expect(Transcript::validateTranscriptSchema($invalidPrescriptionData))->toBeFalse();
+});
+
+it('rejects transcript data with invalid diagnoses structure', function () {
+    $invalidDiagnosesData = [
+        'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
+        'date' => '2025-08-31',
+        'prescriptions' => [],
+        'diagnoses' => [
+            [
+                'notes' => 'Some notes',
             ],
-            'instructions' => 'Take medication as prescribed and return in 4 weeks',
-            'doctor' => [
-                'name' => 'Dr. Sarah Johnson',
-                'signature' => 'S.Johnson',
+        ],
+        'observations' => [],
+        'tests' => [],
+        'instructions' => 'Test',
+        'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
+    ];
+
+    expect(Transcript::validateTranscriptSchema($invalidDiagnosesData))->toBeFalse();
+});
+
+it('rejects transcript data with invalid tests structure', function () {
+    $invalidTestsData = [
+        'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
+        'date' => '2025-08-31',
+        'prescriptions' => [],
+        'diagnoses' => [],
+        'observations' => [],
+        'tests' => [
+            [
+                'result' => 'Normal',
             ],
-        ];
+        ],
+        'instructions' => 'Test',
+        'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
+    ];
 
-        $this->assertTrue(Transcript::validateTranscriptSchema($validData));
-    }
+    expect(Transcript::validateTranscriptSchema($invalidTestsData))->toBeFalse();
+});
 
-    public function test_rejects_transcript_data_missing_required_top_level_keys()
-    {
-        $incompleteData = [
-            'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
-            'date' => '2025-08-31',
-            // Missing other required keys
-        ];
+it('returns null for formatted transcript when not completed', function () {
+    $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
+    expect($transcript->getFormattedTranscript())->toBeNull();
+});
 
-        $this->assertFalse(Transcript::validateTranscriptSchema($incompleteData));
-    }
+it('returns null for formatted transcript when transcript data is null', function () {
+    $transcript = Transcript::factory()->create([
+        'status' => Transcript::STATUS_COMPLETED,
+        'transcript' => null,
+    ]);
 
-    public function test_rejects_transcript_data_with_invalid_patient_structure()
-    {
-        $invalidPatientData = [
-            'patient' => [
-                'name' => 'John Doe',
-                // Missing age and gender
-            ],
-            'date' => '2025-08-31',
-            'prescriptions' => [],
-            'diagnoses' => [],
-            'observations' => [],
-            'tests' => [],
-            'instructions' => 'Test',
-            'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
-        ];
+    expect($transcript->getFormattedTranscript())->toBeNull();
+});
 
-        $this->assertFalse(Transcript::validateTranscriptSchema($invalidPatientData));
-    }
+it('returns transcript data when completed with valid data', function () {
+    $transcriptData = [
+        'patient' => ['name' => 'Test Patient', 'age' => 30, 'gender' => 'Male'],
+        'date' => '2025-08-31',
+        'prescriptions' => [],
+        'diagnoses' => [],
+        'observations' => [],
+        'tests' => [],
+        'instructions' => 'Test instructions',
+        'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
+    ];
 
-    public function test_rejects_transcript_data_with_invalid_doctor_structure()
-    {
-        $invalidDoctorData = [
-            'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
-            'date' => '2025-08-31',
-            'prescriptions' => [],
-            'diagnoses' => [],
-            'observations' => [],
-            'tests' => [],
-            'instructions' => 'Test',
-            'doctor' => [
-                'name' => 'Dr. Test',
-                // Missing signature
-            ],
-        ];
+    $transcript = Transcript::factory()->create([
+        'status' => Transcript::STATUS_COMPLETED,
+        'transcript' => $transcriptData,
+    ]);
 
-        $this->assertFalse(Transcript::validateTranscriptSchema($invalidDoctorData));
-    }
+    expect($transcript->getFormattedTranscript())->toBeArray();
+    expect($transcript->getFormattedTranscript()['patient']['name'])->toBe('Test Patient');
+});
 
-    public function test_rejects_transcript_data_with_invalid_prescription_structure()
-    {
-        $invalidPrescriptionData = [
-            'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
-            'date' => '2025-08-31',
-            'prescriptions' => [
-                [
-                    'drug_name' => 'Aspirin',
-                    // Missing required fields
-                ],
-            ],
-            'diagnoses' => [],
-            'observations' => [],
-            'tests' => [],
-            'instructions' => 'Test',
-            'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
-        ];
+it('transcript belongs to user', function () {
+    $user = User::factory()->create();
+    $transcript = Transcript::factory()->for($user)->create();
 
-        $this->assertFalse(Transcript::validateTranscriptSchema($invalidPrescriptionData));
-    }
+    expect($transcript->user_id)->toBe($user->id);
+    expect($transcript->user)->toBeInstanceOf(User::class);
+    expect($transcript->user->name)->toBe($user->name);
+});
 
-    public function test_rejects_transcript_data_with_invalid_diagnoses_structure()
-    {
-        $invalidDiagnosesData = [
-            'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
-            'date' => '2025-08-31',
-            'prescriptions' => [],
-            'diagnoses' => [
-                [
-                    // Missing condition
-                    'notes' => 'Some notes',
-                ],
-            ],
-            'observations' => [],
-            'tests' => [],
-            'instructions' => 'Test',
-            'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
-        ];
+it('user has many transcripts', function () {
+    $user = User::factory()->create();
+    Transcript::factory()->for($user)->count(3)->create();
 
-        $this->assertFalse(Transcript::validateTranscriptSchema($invalidDiagnosesData));
-    }
-
-    public function test_rejects_transcript_data_with_invalid_tests_structure()
-    {
-        $invalidTestsData = [
-            'patient' => ['name' => 'John', 'age' => 30, 'gender' => 'Male'],
-            'date' => '2025-08-31',
-            'prescriptions' => [],
-            'diagnoses' => [],
-            'observations' => [],
-            'tests' => [
-                [
-                    // Missing test_name
-                    'result' => 'Normal',
-                ],
-            ],
-            'instructions' => 'Test',
-            'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
-        ];
-
-        $this->assertFalse(Transcript::validateTranscriptSchema($invalidTestsData));
-    }
-
-    public function test_returns_null_for_formatted_transcript_when_not_completed()
-    {
-        $transcript = Transcript::factory()->create(['status' => Transcript::STATUS_PENDING]);
-
-        $this->assertNull($transcript->getFormattedTranscript());
-    }
-
-    public function test_returns_null_for_formatted_transcript_when_transcript_data_is_null()
-    {
-        $transcript = Transcript::factory()->create([
-            'status' => Transcript::STATUS_COMPLETED,
-            'transcript' => null,
-        ]);
-
-        $this->assertNull($transcript->getFormattedTranscript());
-    }
-
-    public function test_returns_transcript_data_when_completed_with_valid_data()
-    {
-        $transcriptData = [
-            'patient' => ['name' => 'Test Patient', 'age' => 30, 'gender' => 'Male'],
-            'date' => '2025-08-31',
-            'prescriptions' => [],
-            'diagnoses' => [],
-            'observations' => [],
-            'tests' => [],
-            'instructions' => 'Test instructions',
-            'doctor' => ['name' => 'Dr. Test', 'signature' => 'Test'],
-        ];
-
-        $transcript = Transcript::factory()->create([
-            'status' => Transcript::STATUS_COMPLETED,
-            'transcript' => $transcriptData,
-        ]);
-
-        $this->assertIsArray($transcript->getFormattedTranscript());
-        $this->assertEquals('Test Patient', $transcript->getFormattedTranscript()['patient']['name']);
-    }
-
-    public function test_transcript_belongs_to_user()
-    {
-        $user = \App\Models\User::factory()->create();
-        $transcript = Transcript::factory()->for($user)->create();
-
-        $this->assertEquals($user->id, $transcript->user_id);
-        $this->assertInstanceOf(\App\Models\User::class, $transcript->user);
-        $this->assertEquals($user->name, $transcript->user->name);
-    }
-
-    public function test_user_has_many_transcripts()
-    {
-        $user = \App\Models\User::factory()->create();
-        $transcripts = Transcript::factory()->for($user)->count(3)->create();
-
-        $this->assertCount(3, $user->transcripts);
-        $this->assertInstanceOf(Transcript::class, $user->transcripts->first());
-    }
-}
+    expect($user->transcripts)->toHaveCount(3);
+    expect($user->transcripts->first())->toBeInstanceOf(Transcript::class);
+});
